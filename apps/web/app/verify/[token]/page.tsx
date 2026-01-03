@@ -6,10 +6,11 @@ import ConfidenceBadge from '../../../components/ConfidenceBadge';
 import ConfidenceExplainability from '../../../components/ConfidenceExplainability';
 
 interface ReceiptItem {
-  name: string;
+  name?: string;
+  item_name?: string; // Fallback if name is not present
   quantity: number;
   item_price: string;
-  total_price: string;
+  total_price?: string;
   description?: string | null;
   sku?: string | null;
   variation?: string | null;
@@ -429,10 +430,13 @@ export default function VerifyReceipt() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Items</h3>
             <div className="space-y-3">
               {receipt.receipt_items.map((item, idx) => {
+                // Handle both item.name (from API mapping) and item.item_name (fallback)
+                const itemName = (item as any).name || (item as any).item_name || 'Unknown Item';
+                
                 // Check if this item is disputed
                 const disputedItem = dispute?.disputed_items?.find(di => {
-                  if (!di.item_name || !item.name) return false;
-                  return di.item_name === item.name || di.item_name === item.name.trim();
+                  if (!di.item_name || !itemName) return false;
+                  return di.item_name === itemName || di.item_name === itemName.trim();
                 });
                 const isDisputed = !!disputedItem;
                 const disputedQuantity = disputedItem?.quantity || 0;
@@ -449,7 +453,7 @@ export default function VerifyReceipt() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <p className={`font-medium ${isDisputed ? 'text-amber-900' : 'text-gray-900'}`}>
-                            {item.name}
+                            {itemName}
                           </p>
                           {isDisputed && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-200 text-amber-800">
