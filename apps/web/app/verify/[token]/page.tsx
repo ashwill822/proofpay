@@ -81,25 +81,46 @@ export default function VerifyReceipt() {
           ? 'http://localhost:4000'
           : 'https://aussieadrenaline-api.vercel.app';
 
-        const response = await fetch(`${apiUrl}/api/verify/${token}`);
-        
-        if (!response.ok) {
-          let errorMessage = 'Failed to verify receipt';
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData.message || errorData.error || errorMessage;
-          } catch (e) {
-            // If response is not JSON, use status text
-            errorMessage = response.statusText || errorMessage;
-          }
-          throw new Error(errorMessage);
-        }
+        // Add timeout to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-        const receiptData: VerifyResponse = await response.json();
-        setData(receiptData);
+        try {
+          const response = await fetch(`${apiUrl}/api/verify/${token}`, {
+            signal: controller.signal,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            let errorMessage = 'Failed to verify receipt';
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.message || errorData.error || errorMessage;
+            } catch (e) {
+              // If response is not JSON, use status text
+              errorMessage = response.statusText || `HTTP ${response.status}`;
+            }
+            throw new Error(errorMessage);
+          }
+
+          const receiptData: VerifyResponse = await response.json();
+          setData(receiptData);
+        } catch (fetchError: any) {
+          clearTimeout(timeoutId);
+          if (fetchError.name === 'AbortError') {
+            throw new Error('Request timeout - the server took too long to respond');
+          }
+          throw fetchError;
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load receipt');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load receipt';
+        setError(errorMessage);
         console.error('Error fetching receipt:', err);
+        setData(null); // Ensure data is null on error
       } finally {
         setLoading(false);
       }
