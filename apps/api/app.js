@@ -742,29 +742,6 @@ const start = async () => {
           // Error already logged, just catch to prevent unhandled rejection
         });
 
-        // Transform receipt items - map item_name to name for frontend
-        // Use the directly fetched items with item_name
-        const receiptItems = receiptItemsWithNames.map(item => {
-          // Get item_name from database (it's stored as item_name in receipt_items table)
-          const itemName = item.item_name || 'Unknown Item';
-          
-          // Calculate total_price if not provided
-          const itemPrice = parseFloat(item.item_price) || 0;
-          const itemQuantity = parseInt(item.quantity) || 1;
-          const totalPrice = (itemPrice * itemQuantity).toString();
-          
-          return {
-            name: itemName,
-            quantity: itemQuantity,
-            item_price: item.item_price ? item.item_price.toString() : '0',
-            total_price: totalPrice,
-            description: null,
-            sku: null,
-            variation: null,
-            category: null,
-          };
-        });
-
         // Return read-only receipt data (includes Payment ID and Receipt ID for verification)
         const response = {
           success: true,
