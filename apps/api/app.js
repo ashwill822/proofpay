@@ -650,19 +650,28 @@ const start = async () => {
 
         const { verification_state, receipt, share } = result;
 
-        // Re-fetch receipt with items using nested query (same as receipts endpoint that works)
-        // This ensures item_name is included in the response
-        const { data: receiptWithItems, error: receiptItemsError } = await supabase
-          .from('receipts')
-          .select(`
-            *,
-            receipt_items (*)
-          `)
-          .eq('id', receipt.id)
-          .single();
+        // Fetch receipt items directly with explicit item_name selection
+        // This bypasses any issues with getReceiptByToken not returning item_name
+        const { data: receiptItemsData, error: itemsError } = await supabase
+          .from('receipt_items')
+          .select('id, item_name, item_price, quantity, created_at, updated_at')
+          .eq('receipt_id', receipt.id)
+          .order('created_at', { ascending: true });
 
-        // Use items from nested query if successful, otherwise fall back to items from getReceiptByToken
-        const receiptItems = receiptWithItems?.receipt_items || receipt.receipt_items || [];
+        if (itemsError) {
+          fastify.log.error('❌ Error fetching receipt items:', itemsError);
+        }
+
+        // Log what we got to debug
+        fastify.log.info('🔍 Fetched receipt items:', {
+          itemCount: receiptItemsData?.length || 0,
+          firstItem: receiptItemsData?.[0] || null,
+          hasItemName: receiptItemsData?.[0]?.item_name ? true : false,
+          itemNameValue: receiptItemsData?.[0]?.item_name || 'MISSING'
+        });
+
+        // Use directly fetched items (they should have item_name)
+        const receiptItems = receiptItemsData || [];
 
         // Fetch dispute details if receipt is disputed
         let disputeInfo = null;
