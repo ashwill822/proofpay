@@ -649,6 +649,13 @@ const start = async () => {
         }
 
         const { verification_state, receipt, share } = result;
+        
+        // Debug: Log receipt items structure
+        console.log('🔍 DEBUG - Receipt items structure:', JSON.stringify({
+          itemCount: receipt.receipt_items?.length || 0,
+          firstItem: receipt.receipt_items?.[0] || null,
+          allItems: receipt.receipt_items || []
+        }, null, 2));
 
         // Fetch dispute details if receipt is disputed
         let disputeInfo = null;
