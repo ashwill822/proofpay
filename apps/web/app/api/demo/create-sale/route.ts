@@ -86,25 +86,23 @@ export async function POST(request: NextRequest) {
     
     console.log(`📍 [CREATE-SALE] Using location: ${locationId}`);
     
-    // Verify client has required APIs (check both ordersApi and orders)
-    const hasOrdersApi = !!(client.ordersApi || client.orders);
-    const hasPaymentsApi = !!(client.paymentsApi || client.payments);
+    // Verify client has required APIs
+    const hasOrdersApi = !!client.orders;
+    const hasPaymentsApi = !!client.payments;
     
     if (!hasOrdersApi) {
-      console.error('❌ [CREATE-SALE] Neither ordersApi nor orders is available');
+      console.error('❌ [CREATE-SALE] Orders API is not available');
       console.error('❌ [CREATE-SALE] Client keys:', Object.keys(client).filter(k => !k.startsWith('_')));
       throw new Error('Square orders API is not available. Check Square SDK version.');
     }
     
     if (!hasPaymentsApi) {
-      console.error('❌ [CREATE-SALE] Neither paymentsApi nor payments is available');
+      console.error('❌ [CREATE-SALE] Payments API is not available');
       throw new Error('Square payments API is not available. Check Square SDK version.');
     }
     
     console.log('✅ [CREATE-SALE] Square APIs available:', {
-      ordersApi: !!client.ordersApi,
       orders: !!client.orders,
-      paymentsApi: !!client.paymentsApi,
       payments: !!client.payments,
     });
 
@@ -143,17 +141,12 @@ export async function POST(request: NextRequest) {
 
     // Create Square Order
     console.log('📝 [CREATE-SALE] Creating Square Order...');
-    // Use orders.create() (Square SDK v40 uses orders.create, not ordersApi.createOrder)
-    const ordersApi = client.ordersApi || client.orders;
+    // Square SDK v40: use orders.create()
+    const ordersApi = client.orders;
     if (!ordersApi) {
       throw new Error('Square orders API is not available. Check Square SDK version.');
     }
-    // Square SDK v40: use orders.create() instead of ordersApi.createOrder()
-    const createOrderMethod = ordersApi.create || ordersApi.createOrder;
-    if (!createOrderMethod) {
-      throw new Error('Square orders.create() method is not available.');
-    }
-    const orderResponse = await createOrderMethod.call(ordersApi, {
+    const orderResponse = await ordersApi.create({
       idempotencyKey: orderIdempotencyKey,
       order: {
         locationId: locationId,
@@ -195,17 +188,12 @@ export async function POST(request: NextRequest) {
 
     // Create Square Payment
     console.log('💳 [CREATE-SALE] Creating Square Payment...');
-    // Use payments.create() (Square SDK v40 uses payments.create, not paymentsApi.createPayment)
-    const paymentsApi = client.paymentsApi || client.payments;
+    // Square SDK v40: use payments.create()
+    const paymentsApi = client.payments;
     if (!paymentsApi) {
       throw new Error('Square payments API is not available. Check Square SDK version.');
     }
-    // Square SDK v40: use payments.create() instead of paymentsApi.createPayment()
-    const createPaymentMethod = paymentsApi.create || paymentsApi.createPayment;
-    if (!createPaymentMethod) {
-      throw new Error('Square payments.create() method is not available.');
-    }
-    const paymentResponse = await createPaymentMethod.call(paymentsApi, {
+    const paymentResponse = await paymentsApi.create({
       idempotencyKey: paymentIdempotencyKey,
       sourceId: 'cnon:card-nonce-ok', // Square test nonce for sandbox
       amountMoney: {
