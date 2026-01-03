@@ -223,7 +223,7 @@ export default function ReceiptsPage() {
                           </span>
                         </div>
                         <p className="text-gray-600 text-sm">
-                          {formatDate(receipt.purchase_time || receipt.created_at)}
+                          {formatDate(receipt.created_at)}
                         </p>
                         {receipt.below_threshold ? (
                           <p className="text-sm text-amber-600 font-medium mt-1">
