@@ -744,17 +744,15 @@ const start = async () => {
 
         // Transform receipt items - map item_name to name for frontend
         const receiptItems = receipt.receipt_items?.map(item => {
-          // Debug: log item structure
-          fastify.log.info('🔍 [VERIFY] Item structure:', {
-            hasItemName: !!item.item_name,
-            itemName: item.item_name,
-            hasName: !!item.name,
-            name: item.name,
-            keys: Object.keys(item || {})
-          });
+          // Handle item_name mapping - use item_name from database, with fallbacks
+          const itemName = (item.item_name && item.item_name.trim()) 
+            ? item.item_name.trim() 
+            : (item.name && item.name.trim()) 
+              ? item.name.trim() 
+              : 'Unknown Item';
           
           return {
-            name: item.item_name || item.name || 'Unknown Item',
+            name: itemName,
             quantity: item.quantity || 1,
             item_price: item.item_price || '0',
             total_price: item.total_price || (item.item_price && item.quantity ? (parseFloat(item.item_price) * parseInt(item.quantity, 10)).toString() : item.item_price || '0'),
