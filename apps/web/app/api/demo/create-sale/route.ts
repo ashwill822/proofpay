@@ -155,8 +155,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (orderResponse.result.errors && orderResponse.result.errors.length > 0) {
-      const errorMessages = orderResponse.result.errors.map((e: any) => e.detail || e.message).join(', ');
+    // Square SDK v40: response has errors and order properties directly
+    const responseData = orderResponse as any;
+    if (responseData.errors && responseData.errors.length > 0) {
+      const errorMessages = responseData.errors.map((e: any) => e.detail || e.message).join(', ');
       console.error('❌ [CREATE-SALE] Order creation failed:', errorMessages);
       return NextResponse.json(
         {
@@ -167,7 +169,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const order = orderResponse.result.order;
+    const order = responseData.order;
     const orderId = order?.id;
 
     if (!orderId) {
@@ -204,8 +206,10 @@ export async function POST(request: NextRequest) {
       orderId: orderId,
     });
 
-    if (paymentResponse.result.errors && paymentResponse.result.errors.length > 0) {
-      const errorMessages = paymentResponse.result.errors.map((e: any) => e.detail || e.message).join(', ');
+    // Square SDK v40: response has errors and payment properties directly
+    const paymentData = paymentResponse as any;
+    if (paymentData.errors && paymentData.errors.length > 0) {
+      const errorMessages = paymentData.errors.map((e: any) => e.detail || e.message).join(', ');
       console.error('❌ [CREATE-SALE] Payment creation failed:', errorMessages);
       
       return NextResponse.json(
@@ -218,7 +222,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const payment = paymentResponse.result.payment;
+    const payment = paymentData.payment;
     const paymentId = payment?.id;
 
     if (!paymentId) {
