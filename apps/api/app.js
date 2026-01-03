@@ -752,27 +752,28 @@ const start = async () => {
             name: receipt.receipt_items[0].name,
             hasItemName: !!receipt.receipt_items[0].item_name,
             itemNameType: typeof receipt.receipt_items[0].item_name,
+            itemNameValue: receipt.receipt_items[0].item_name,
           } : null
         });
         
-        const receiptItems = receipt.receipt_items?.map(item => {
+        const receiptItems = (receipt.receipt_items || []).map(item => {
           // Handle item_name mapping - use item_name from database, with fallbacks
           // The database stores item_name, so prioritize that
           let itemName = 'Unknown Item';
           
-          // Check item_name first (from database)
-          if (item.item_name) {
-            const trimmed = String(item.item_name).trim();
-            if (trimmed) {
-              itemName = trimmed;
+          // Check item_name first (from database) - convert to string and trim
+          if (item.item_name != null) {
+            const nameStr = String(item.item_name).trim();
+            if (nameStr.length > 0) {
+              itemName = nameStr;
             }
           }
           
           // Fallback to name if item_name wasn't available
-          if (itemName === 'Unknown Item' && item.name) {
-            const trimmed = String(item.name).trim();
-            if (trimmed) {
-              itemName = trimmed;
+          if (itemName === 'Unknown Item' && item.name != null) {
+            const nameStr = String(item.name).trim();
+            if (nameStr.length > 0) {
+              itemName = nameStr;
             }
           }
           
@@ -780,6 +781,7 @@ const start = async () => {
             originalItemName: item.item_name,
             originalName: item.name,
             mappedName: itemName,
+            itemKeys: Object.keys(item),
           });
           
           return {
@@ -792,7 +794,7 @@ const start = async () => {
             variation: item.variation || null,
             category: item.category || null,
           };
-        }) || [];
+        });
 
         // Return read-only receipt data (includes Payment ID and Receipt ID for verification)
         const response = {
