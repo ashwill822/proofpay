@@ -503,27 +503,29 @@ export default function VerifyReceipt() {
           <p className="text-sm text-gray-600 mb-4">
             Policies remain at merchant discretion.
           </p>
-          <div className="space-y-1 text-xs text-gray-500">
-            <p>
-              This receipt has been viewed {share.view_count} time{share.view_count !== 1 ? 's' : ''}
-            </p>
-            {share.verified_at && (
+          {share && (
+            <div className="space-y-1 text-xs text-gray-500">
               <p>
-                Verified on {new Date(share.verified_at).toLocaleDateString('en-US', { 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
+                This receipt has been viewed {share.view_count} time{share.view_count !== 1 ? 's' : ''}
               </p>
-            )}
-            {share.verification_attempts && share.verification_attempts > 0 && (
-              <p>
-                Verification attempts: {share.verification_attempts}
-              </p>
-            )}
-          </div>
+              {share.verified_at && (
+                <p>
+                  Verified on {new Date(share.verified_at).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </p>
+              )}
+              {share.verification_attempts && share.verification_attempts > 0 && (
+                <p>
+                  Verification attempts: {share.verification_attempts}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </main>
