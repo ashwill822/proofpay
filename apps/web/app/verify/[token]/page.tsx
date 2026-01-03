@@ -259,16 +259,16 @@ export default function VerifyReceipt() {
                         {dispute.notes && (
                           <p className="text-xs text-amber-700 mt-1">{dispute.notes}</p>
                         )}
-                        {dispute.disputed_items && dispute.disputed_items.length > 0 && (
+                        {dispute.disputed_items && Array.isArray(dispute.disputed_items) && dispute.disputed_items.length > 0 && (
                           <div className="mt-2">
                             <p className="text-xs text-amber-800 font-medium mb-1">Disputed Items:</p>
                             <ul className="text-xs text-amber-700 space-y-1">
                               {dispute.disputed_items.map((item, idx) => (
                                 <li key={idx}>
-                                  • {item.quantity}x {item.item_name}
+                                  • {item.quantity || 0}x {item.item_name || 'Unknown item'}
                                   {item.amount_cents && (
                                     <span className="ml-2">
-                                      ({formatCurrency((item.amount_cents / 100).toString(), receipt?.currency || 'USD')})
+                                      ({formatCurrency((item.amount_cents / 100).toString(), receipt.currency || 'USD')})
                                     </span>
                                   )}
                                 </li>
@@ -430,9 +430,10 @@ export default function VerifyReceipt() {
             <div className="space-y-3">
               {receipt.receipt_items.map((item, idx) => {
                 // Check if this item is disputed
-                const disputedItem = dispute?.disputed_items?.find(di => 
-                  di.item_name === item.name || di.item_name === item.name.trim()
-                );
+                const disputedItem = dispute?.disputed_items?.find(di => {
+                  if (!di.item_name || !item.name) return false;
+                  return di.item_name === item.name || di.item_name === item.name.trim();
+                });
                 const isDisputed = !!disputedItem;
                 const disputedQuantity = disputedItem?.quantity || 0;
                 const isPartialDispute = isDisputed && disputedQuantity < item.quantity;
