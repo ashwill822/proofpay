@@ -338,9 +338,37 @@ export async function getReceiptByToken(token, options = {}) {
  */
 export function getVerifyUrl(token) {
   // Determine base URL based on environment
-  // Priority: WEB_APP_URL env var > localhost (for development)
-  // WEB_APP_URL must be set in production to point to the web app URL
-  const baseUrl = process.env.WEB_APP_URL || 'http://localhost:3000';
+  // Priority: WEB_APP_URL env var > auto-detect from Vercel > localhost
+  let baseUrl;
+  
+  if (process.env.WEB_APP_URL) {
+    // Use explicitly set web app URL (recommended)
+    baseUrl = process.env.WEB_APP_URL;
+  } else if (process.env.VERCEL) {
+    // In Vercel, try to construct production URL
+    // VERCEL_URL format: project-hash-username.vercel.app (deployment URL)
+    // Production URL format: project.vercel.app (without hash/username)
+    const vercelUrl = process.env.VERCEL_URL;
+    if (vercelUrl) {
+      // Extract project name (first part before first hyphen)
+      // For API projects, assume web app is same name without '-api' suffix
+      const parts = vercelUrl.split('.');
+      if (parts.length > 0) {
+        const firstPart = parts[0];
+        // Remove deployment hash and username (everything after first hyphen)
+        const projectName = firstPart.split('-')[0];
+        // Remove '-api' suffix if present (since this is the API project)
+        const webAppName = projectName.replace(/-api$/, '');
+        baseUrl = `https://${webAppName}.vercel.app`;
+      } else {
+        baseUrl = `https://${vercelUrl}`;
+      }
+    } else {
+      baseUrl = 'http://localhost:3000';
+    }
+  } else {
+    baseUrl = 'http://localhost:3000';
+  }
   
   return `${baseUrl}/verify/${token}`;
 }
