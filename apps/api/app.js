@@ -742,6 +742,29 @@ const start = async () => {
           // Error already logged, just catch to prevent unhandled rejection
         });
 
+        // Transform receipt items - map item_name to name for frontend
+        const receiptItems = receipt.receipt_items?.map(item => {
+          // Debug: log item structure
+          fastify.log.info('🔍 [VERIFY] Item structure:', {
+            hasItemName: !!item.item_name,
+            itemName: item.item_name,
+            hasName: !!item.name,
+            name: item.name,
+            keys: Object.keys(item || {})
+          });
+          
+          return {
+            name: item.item_name || item.name || 'Unknown Item',
+            quantity: item.quantity || 1,
+            item_price: item.item_price || '0',
+            total_price: item.total_price || (item.item_price && item.quantity ? (parseFloat(item.item_price) * parseInt(item.quantity, 10)).toString() : item.item_price || '0'),
+            description: item.description || null,
+            sku: item.sku || null,
+            variation: item.variation || null,
+            category: item.category || null,
+          };
+        }) || [];
+
         // Return read-only receipt data (includes Payment ID and Receipt ID for verification)
         const response = {
           success: true,
@@ -754,16 +777,7 @@ const start = async () => {
             currency: receipt.currency,
             created_at: receipt.created_at,
             purchase_time: receipt.purchase_time,
-            receipt_items: receipt.receipt_items?.map(item => ({
-              name: item.item_name || item.name || 'Unknown Item',
-              quantity: item.quantity || 1,
-              item_price: item.item_price || '0',
-              total_price: item.total_price || (item.item_price && item.quantity ? (parseFloat(item.item_price) * parseInt(item.quantity, 10)).toString() : item.item_price || '0'),
-              description: item.description || null,
-              sku: item.sku || null,
-              variation: item.variation || null,
-              category: item.category || null,
-            })) || [],
+            receipt_items: receiptItems,
             confidence_score: receipt.confidence_score,
             confidence_label: receipt.confidence_label,
             confidence_reasons: receipt.confidence_reasons,
