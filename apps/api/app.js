@@ -650,15 +650,19 @@ const start = async () => {
 
         const { verification_state, receipt, share } = result;
 
-        // Fetch receipt items directly from database with explicit item_name selection
-        // This ensures item_name is included (getReceiptByToken may not return it correctly)
-        const { data: receiptItemsData, error: itemsFetchError } = await supabase
-          .from('receipt_items')
-          .select('id, item_name, item_price, quantity, created_at, updated_at')
-          .eq('receipt_id', receipt.id)
-          .order('created_at', { ascending: true });
+        // Fetch receipt items directly from database using nested query (like receipts endpoint)
+        // This ensures item_name is included correctly
+        const { data: receiptWithItems, error: receiptError } = await supabase
+          .from('receipts')
+          .select(`
+            *,
+            receipt_items (*)
+          `)
+          .eq('id', receipt.id)
+          .single();
 
-        const receiptItemsWithNames = itemsFetchError ? (receipt.receipt_items || []) : (receiptItemsData || []);
+        // Use items from the nested query if successful, otherwise fall back
+        const receiptItemsWithNames = receiptWithItems?.receipt_items || receipt.receipt_items || [];
 
         // Fetch dispute details if receipt is disputed
         let disputeInfo = null;
