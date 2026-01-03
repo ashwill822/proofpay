@@ -744,9 +744,22 @@ const start = async () => {
 
         // Transform receipt items - map item_name to name for frontend
         // The database stores item_name, so we need to map it to name for the frontend
+        fastify.log.info('🔍 [VERIFY] Receipt items before mapping:', {
+          itemCount: receipt.receipt_items?.length || 0,
+          firstItem: receipt.receipt_items?.[0] || null,
+          allItemKeys: receipt.receipt_items?.[0] ? Object.keys(receipt.receipt_items[0]) : []
+        });
+        
         const receiptItems = (receipt.receipt_items || []).map(item => {
           // Direct mapping: item_name from database -> name for frontend
           const itemName = item.item_name || item.name || 'Unknown Item';
+          
+          fastify.log.info('🔍 [VERIFY] Mapping item:', {
+            item_name: item.item_name,
+            name: item.name,
+            mappedName: itemName,
+            itemKeys: Object.keys(item)
+          });
           
           return {
             name: itemName,
