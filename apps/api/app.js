@@ -847,14 +847,38 @@ const start = async () => {
           };
         });
 
+        // Log finalReceiptItems to verify item_name is present
+        fastify.log.info('🔍 [VERIFY] Final receipt_items before response', {
+          item_count: finalReceiptItems.length,
+          first_item_keys: finalReceiptItems[0] ? Object.keys(finalReceiptItems[0]).join(', ') : 'none',
+          first_item_has_item_name: finalReceiptItems[0]?.item_name ? true : false,
+          first_item_name: finalReceiptItems[0]?.item_name || 'MISSING',
+          first_item_full: finalReceiptItems[0] ? JSON.stringify(finalReceiptItems[0]) : 'none',
+        });
+
         // Return read-only receipt data (includes Payment ID and Receipt ID for verification)
-        // Use EXACT same structure as /api/receipts/:id - just copy receipt_items directly
+        // CRITICAL: Don't use spread operator on receipt - it might overwrite receipt_items
+        // Build receipt object explicitly to ensure receipt_items is included
         const response = {
           success: true,
           verification_state: verification_state,
           receipt: {
-            ...receipt,
-            // Use explicitly mapped receipt_items to guarantee item_name is present
+            id: receipt.id,
+            payment_id: receipt.payment_id,
+            amount: receipt.amount,
+            currency: receipt.currency,
+            created_at: receipt.created_at,
+            updated_at: receipt.updated_at,
+            merchant_name: receipt.merchant_name,
+            source: receipt.source,
+            purchase_time: receipt.purchase_time,
+            confidence_score: receipt.confidence_score,
+            confidence_label: receipt.confidence_label,
+            confidence_reasons: receipt.confidence_reasons,
+            refunded: receipt.refunded,
+            refunded_at: receipt.refunded_at,
+            refund_amount: receipt.refund_amount,
+            // CRITICAL: Explicitly include receipt_items with item_name
             receipt_items: finalReceiptItems,
           },
           share: {
