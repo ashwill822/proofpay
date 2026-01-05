@@ -806,6 +806,34 @@ const start = async () => {
           first_item_full: JSON.stringify(receiptItems[0] || {}),
         });
 
+        // CRITICAL: Ensure receipt_items have item_name before sending response
+        // Map items to explicitly guarantee item_name is present
+        const finalReceiptItems = (receiptItems || []).map(item => {
+          // Log if item_name is missing
+          if (!item.item_name) {
+            fastify.log.error('❌ [VERIFY] Item missing item_name in final mapping:', {
+              item_id: item.id,
+              item_keys: Object.keys(item),
+              item_json: JSON.stringify(item),
+            });
+          }
+          
+          // Return item with explicit item_name field
+          return {
+            id: item.id,
+            receipt_id: item.receipt_id,
+            item_name: item.item_name || 'Item Name Missing', // FORCE item_name to be present
+            item_price: String(item.item_price || '0'),
+            quantity: item.quantity || 1,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            description: item.description || null,
+            sku: item.sku || null,
+            variation: item.variation || null,
+            category: item.category || null,
+          };
+        });
+
         // Return read-only receipt data (includes Payment ID and Receipt ID for verification)
         // Use EXACT same structure as /api/receipts/:id - just copy receipt_items directly
         const response = {
@@ -813,8 +841,8 @@ const start = async () => {
           verification_state: verification_state,
           receipt: {
             ...receipt,
-            // Use receipt_items directly from /api/receipts/:id query (NO transformation)
-            receipt_items: receiptItems, // Direct copy from receipts endpoint query
+            // Use explicitly mapped receipt_items to guarantee item_name is present
+            receipt_items: finalReceiptItems,
           },
           share: {
             view_count: share.view_count,
