@@ -316,6 +316,11 @@ fastify.post('/api/disputes', async (request, reply) => {
 
     // GET /api/verify/:token - Get receipt by share token (public endpoint)
     fastify.get('/api/verify/:token', async (request, reply) => {
+      // CRITICAL: This log MUST appear if new code is running
+      fastify.log.error('🚨🚨🚨 NEW CODE VERSION c717398 IS RUNNING 🚨🚨🚨');
+      fastify.log.warn('🚨🚨🚨 NEW CODE VERSION c717398 IS RUNNING 🚨🚨🚨');
+      fastify.log.info('🚨🚨🚨 NEW CODE VERSION c717398 IS RUNNING 🚨🚨🚨');
+      
       try {
         if (!supabase) {
           return reply.code(503).send({
@@ -325,7 +330,7 @@ fastify.post('/api/disputes', async (request, reply) => {
         }
 
         const token = request.params.token;
-        fastify.log.info('🔍 Verifying share token', { token: token.substring(0, 4) + '...' });
+        fastify.log.warn('🔍 [VERIFY-API] NEW CODE: Verifying share token', { token: token.substring(0, 4) + '...' });
 
         // Get receipt by token
         fastify.log.warn('🔍 [VERIFY-API] About to call getReceiptByToken with token:', token.substring(0, 4) + '...');
