@@ -381,6 +381,23 @@ fastify.post('/api/disputes', async (request, reply) => {
 
         const { verification_state, receipt, share } = result;
 
+        // DEBUG: Log receipt items structure to verify item_name is present
+        console.log('🔍 [VERIFY-API] Receipt items from getReceiptByToken:', {
+          receipt_id: receipt.id,
+          items_count: receipt.receipt_items?.length || 0,
+          first_item_keys: receipt.receipt_items?.[0] ? Object.keys(receipt.receipt_items[0]).join(', ') : 'none',
+          first_item_has_item_name: receipt.receipt_items?.[0]?.item_name ? true : false,
+          first_item_name: receipt.receipt_items?.[0]?.item_name || 'MISSING',
+          first_item_full: receipt.receipt_items?.[0] ? JSON.stringify(receipt.receipt_items[0]) : 'none',
+        });
+        fastify.log.info('🔍 [VERIFY-API] Receipt items from getReceiptByToken', {
+          receipt_id: receipt.id,
+          items_count: receipt.receipt_items?.length || 0,
+          first_item_keys: receipt.receipt_items?.[0] ? Object.keys(receipt.receipt_items[0]).join(', ') : 'none',
+          first_item_has_item_name: receipt.receipt_items?.[0]?.item_name ? true : false,
+          first_item_name: receipt.receipt_items?.[0]?.item_name || 'MISSING',
+        });
+
         // Fetch dispute details if receipt is disputed
         let disputeInfo = null;
         if (verification_state === 'DISPUTED') {
@@ -485,12 +502,22 @@ fastify.post('/api/disputes', async (request, reply) => {
             currency: receipt.currency,
             created_at: receipt.created_at,
             purchase_time: receipt.purchase_time,
-            receipt_items: receipt.receipt_items?.map(item => {
+            receipt_items: receipt.receipt_items?.map((item, idx) => {
               // Use item_name from database (database column name)
               // Provide both 'name' and 'item_name' for frontend compatibility
               const itemName = item.item_name || item.name || 'Unknown Item';
               
-              return {
+              // DEBUG: Log each item mapping
+              if (idx === 0) {
+                console.log('🔍 [VERIFY-API] Mapping first item:', {
+                  item_keys: Object.keys(item).join(', '),
+                  item_item_name: item.item_name || 'MISSING',
+                  item_name: item.name || 'MISSING',
+                  final_itemName: itemName,
+                });
+              }
+              
+              const mappedItem = {
                 id: item.id || null,
                 receipt_id: item.receipt_id || receipt.id,
                 name: itemName, // For frontend compatibility
@@ -503,6 +530,16 @@ fastify.post('/api/disputes', async (request, reply) => {
                 variation: item.variation || null,
                 category: item.category || null,
               };
+              
+              if (idx === 0) {
+                console.log('🔍 [VERIFY-API] Mapped first item result:', {
+                  mapped_keys: Object.keys(mappedItem).join(', '),
+                  mapped_item_name: mappedItem.item_name,
+                  mapped_name: mappedItem.name,
+                });
+              }
+              
+              return mappedItem;
             }) || [],
             confidence_score: receipt.confidence_score,
             confidence_label: receipt.confidence_label,
@@ -519,10 +556,25 @@ fastify.post('/api/disputes', async (request, reply) => {
           dispute: disputeInfo
         };
 
+        // DEBUG: Log final response structure
+        console.log('🔍 [VERIFY-API] Final response structure:', {
+          receipt_id: receipt.id,
+          items_count: response.receipt.receipt_items?.length || 0,
+          first_item_keys: response.receipt.receipt_items?.[0] ? Object.keys(response.receipt.receipt_items[0]).join(', ') : 'none',
+          first_item_has_item_name: response.receipt.receipt_items?.[0]?.item_name ? true : false,
+          first_item_name: response.receipt.receipt_items?.[0]?.item_name || 'MISSING',
+        });
         fastify.log.info('✅ Receipt retrieved by token', { 
           receiptId: receipt.id,
-          viewCount: share.view_count 
+          viewCount: share.view_count,
+          items_count: response.receipt.receipt_items?.length || 0,
+          first_item_has_name: response.receipt.receipt_items?.[0]?.item_name ? true : false,
         });
+
+        // Add cache control headers to prevent caching
+        reply.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        reply.header('Pragma', 'no-cache');
+        reply.header('Expires', '0');
 
         return reply.code(200).send(response);
       } catch (error) {
