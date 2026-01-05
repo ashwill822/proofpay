@@ -676,12 +676,7 @@ const start = async () => {
         }
 
         // receipt_items already included from getReceiptByToken nested query
-        // Explicitly map to ensure item_name is present in response
-        const receiptItems = (receipt.receipt_items || []).map(item => ({
-          ...item,
-          // Explicitly include item_name to ensure it's always present in response
-          item_name: item.item_name || null,
-        }));
+        // Return exactly as-is (same as /api/receipts/:id) - no mapping needed
 
         // Fetch dispute details if receipt is disputed
         let disputeInfo = null;
@@ -807,8 +802,7 @@ const start = async () => {
         fastify.log.info('✅ Receipt retrieved by token', { 
           receiptId: receipt.id,
           viewCount: share.view_count,
-          itemCount: receiptItems.length,
-          items_with_item_name: receiptItems.filter(item => item.item_name).length,
+          itemCount: receipt.receipt_items?.length || 0,
         });
 
         // Set cache-control headers to prevent caching
