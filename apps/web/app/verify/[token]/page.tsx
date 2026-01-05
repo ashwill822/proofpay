@@ -425,13 +425,13 @@ export default function VerifyReceipt() {
         </div>
 
         {/* Receipt Items */}
-        {receipt.receipt_items && receipt.receipt_items.length > 0 && (
+        {receipt.receipt_items && receipt.receipt_items.length > 0 ? (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Items</h3>
             <div className="space-y-3">
               {receipt.receipt_items.map((item, idx) => {
-                // Use item_name directly from database (same as receipts page)
-                const itemName = (item as any).item_name || 'Unknown Item';
+                // Use item_name or name (API provides both for compatibility)
+                const itemName = (item as any).item_name || (item as any).name || 'Unknown Item';
                 
                 // Check if this item is disputed
                 const disputedItem = dispute?.disputed_items?.find(di => {
@@ -514,6 +514,23 @@ export default function VerifyReceipt() {
                   </div>
                 );
               })}
+            </div>
+            <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between">
+              <p className="text-lg font-semibold text-gray-900">Total</p>
+              <p className="text-2xl font-bold text-indigo-600">
+                {formatCurrency(receipt.amount, receipt.currency)}
+              </p>
+            </div>
+          </div>
+        ) : (
+          // Fallback when items are missing
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Items</h3>
+            <div className="text-center py-8">
+              <p className="text-gray-600 mb-2">Item details unavailable</p>
+              <p className="text-sm text-gray-500">
+                Total amount is still shown below for verification purposes.
+              </p>
             </div>
             <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between">
               <p className="text-lg font-semibold text-gray-900">Total</p>

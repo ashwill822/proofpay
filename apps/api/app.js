@@ -650,39 +650,59 @@ const start = async () => {
 
         const { verification_state, receipt, share } = result;
 
-        // Fetch receipt items directly with select('*') to get all fields including item_name
-        // This ensures we get item_name even if it was stored as NULL initially
+        // Log verification resolution for diagnosis
+        fastify.log.info('🔍 [VERIFY] Resolving token to receipt', {
+          token: token.substring(0, 4) + '...',
+          receipt_id: receipt.id,
+        });
+
+        // Fetch receipt items directly with explicit column selection
+        // Query Supabase for all receipt_items where receipt_id = receipt.id
         const { data: receiptItemsData, error: itemsError } = await supabase
           .from('receipt_items')
-          .select('*')
+          .select('id, item_name, item_price, quantity, created_at, updated_at, description, sku, variation, category')
           .eq('receipt_id', receipt.id)
           .order('created_at', { ascending: true });
 
         if (itemsError) {
-          fastify.log.error('❌ Error fetching receipt items:', itemsError);
+          fastify.log.error('❌ [VERIFY] Error fetching receipt items:', {
+            receipt_id: receipt.id,
+            error: itemsError.message,
+            error_code: itemsError.code,
+          });
         }
 
-        // Log what we got to debug
-        fastify.log.info('🔍 Fetched receipt items:', {
-          itemCount: receiptItemsData?.length || 0,
-          firstItem: receiptItemsData?.[0] || null,
-          hasItemName: receiptItemsData?.[0]?.item_name ? true : false,
-          itemNameValue: receiptItemsData?.[0]?.item_name || 'MISSING',
-          allKeys: receiptItemsData?.[0] ? Object.keys(receiptItemsData[0]) : []
+        // Log diagnostic information (no sensitive data)
+        const itemCount = receiptItemsData?.length || 0;
+        fastify.log.info('🔍 [VERIFY] Receipt items fetched', {
+          token: token.substring(0, 4) + '...',
+          receipt_id: receipt.id,
+          item_count: itemCount,
+          has_items: itemCount > 0,
+          first_item_has_name: receiptItemsData?.[0]?.item_name ? true : false,
         });
 
-        // Ensure item_name is present - use directly fetched items
-        // Map items to ensure item_name is ALWAYS present, even if NULL/empty in DB
+        // Map items to ensure consistent structure with name/item_name
+        // Always include item_name even if NULL/empty in database
         const receiptItems = (receiptItemsData || []).map(item => {
-          // Extract all fields from item
-          const { item_name, ...rest } = item;
-          // Always include item_name, even if it's null/undefined/empty
+          const itemName = (item.item_name && String(item.item_name).trim()) || 'Unknown Item';
+          
           return {
-            ...rest,
-            item_name: (item_name && String(item_name).trim()) || 'Unknown Item',
-            // Ensure all required fields are present
+            id: item.id,
+            // Provide both 'name' and 'item_name' for frontend compatibility
+            name: itemName,
+            item_name: itemName,
             quantity: item.quantity || 1,
-            item_price: item.item_price || '0',
+            item_price: String(item.item_price || '0'),
+            total_price: item.item_price && item.quantity 
+              ? String((parseFloat(item.item_price) * (item.quantity || 1)).toFixed(2))
+              : String(item.item_price || '0'),
+            description: item.description || null,
+            sku: item.sku || null,
+            variation: item.variation || null,
+            category: item.category || null,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
           };
         });
 
