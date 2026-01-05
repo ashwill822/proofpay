@@ -682,9 +682,10 @@ const start = async () => {
           receipt_id: receipt.id,
         });
         
+        // CRITICAL: Use select('*') to get ALL columns, then explicitly verify item_name exists
         const { data: dbItems, error: dbError } = await supabase
           .from('receipt_items')
-          .select('id, receipt_id, item_name, item_price, quantity, created_at, updated_at, description, sku, variation, category')
+          .select('*') // Select ALL columns to avoid any RLS or column selection issues
           .eq('receipt_id', receipt.id)
           .order('created_at', { ascending: true });
         
@@ -720,6 +721,21 @@ const start = async () => {
               items_missing_name: itemsWithoutName.length,
               total_items: receiptItems.length,
               first_missing_item: JSON.stringify(itemsWithoutName[0]),
+              first_missing_item_keys: itemsWithoutName[0] ? Object.keys(itemsWithoutName[0]).join(', ') : 'none',
+            });
+          }
+          
+          // If items are missing required fields, log full structure
+          if (receiptItems.length > 0 && (!receiptItems[0].id || !receiptItems[0].item_name)) {
+            fastify.log.error('❌ [VERIFY] Items missing required fields!', {
+              first_item: JSON.stringify(receiptItems[0]),
+              first_item_keys: Object.keys(receiptItems[0]),
+              all_items_sample: receiptItems.slice(0, 3).map(item => ({
+                keys: Object.keys(item),
+                has_id: 'id' in item,
+                has_receipt_id: 'receipt_id' in item,
+                has_item_name: 'item_name' in item,
+              })),
             });
           }
         }
