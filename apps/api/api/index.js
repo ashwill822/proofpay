@@ -317,10 +317,10 @@ fastify.post('/api/disputes', async (request, reply) => {
     // GET /api/verify/:token - Get receipt by share token (public endpoint)
     fastify.get('/api/verify/:token', async (request, reply) => {
       // CRITICAL: This log MUST appear if new code is running
-      // Version: b07dc10 - Force deployment trigger
-      fastify.log.error('🚨🚨🚨 NEW CODE VERSION b07dc10 IS RUNNING 🚨🚨🚨');
-      fastify.log.warn('🚨🚨🚨 NEW CODE VERSION b07dc10 IS RUNNING 🚨🚨🚨');
-      fastify.log.info('🚨🚨🚨 NEW CODE VERSION b07dc10 IS RUNNING 🚨🚨🚨');
+      // Version: 8f81f70 - Force deployment trigger for aussieadrenaline-api
+      fastify.log.error('🚨🚨🚨 NEW CODE VERSION 8f81f70 IS RUNNING 🚨🚨🚨');
+      fastify.log.warn('🚨🚨🚨 NEW CODE VERSION 8f81f70 IS RUNNING 🚨🚨🚨');
+      fastify.log.info('🚨🚨🚨 NEW CODE VERSION 8f81f70 IS RUNNING 🚨🚨🚨');
       
       try {
         if (!supabase) {
