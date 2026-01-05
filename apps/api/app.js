@@ -889,14 +889,14 @@ const start = async () => {
         });
 
         // Return read-only receipt data (includes Payment ID and Receipt ID for verification)
-        // Structure matches /receipts/:id endpoint exactly - receipt_items already included from nested query
+        // Use EXACT same structure as /api/receipts/:id - just copy receipt_items directly
         const response = {
           success: true,
           verification_state: verification_state,
           receipt: {
             ...receipt,
-            // Use explicitly mapped receipt_items to ensure item_name is present
-            receipt_items: receiptItems,
+            // Use receipt_items directly from /api/receipts/:id query (NO transformation)
+            receipt_items: receiptItems, // Direct copy from receipts endpoint query
           },
           share: {
             view_count: share.view_count,
