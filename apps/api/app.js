@@ -676,8 +676,12 @@ const start = async () => {
         }
 
         // receipt_items already included from getReceiptByToken nested query
-        // Same structure as /api/receipts/:id - no mapping or transformation needed
-        // Ensure each item has item_name explicitly present in response
+        // Explicitly map to ensure item_name is present in response
+        const receiptItems = (receipt.receipt_items || []).map(item => ({
+          ...item,
+          // Explicitly include item_name to ensure it's always present in response
+          item_name: item.item_name || null,
+        }));
 
         // Fetch dispute details if receipt is disputed
         let disputeInfo = null;
