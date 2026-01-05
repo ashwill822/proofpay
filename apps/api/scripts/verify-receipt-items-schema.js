@@ -14,37 +14,25 @@ async function verifySchema() {
   console.log('🔍 Verifying receipt_items table schema and data...\n');
 
   try {
-    // Step 1: Check table structure by querying information_schema
+    // Step 1: Check table structure by getting a sample row
     console.log('📋 Step 1: Checking table structure...\n');
     
-    // Query to get column information
-    const { data: columns, error: columnsError } = await supabase.rpc('exec_sql', {
-      sql: `
-        SELECT column_name, data_type, is_nullable, column_default
-        FROM information_schema.columns
-        WHERE table_name = 'receipt_items'
-        ORDER BY ordinal_position;
-      `
-    }).catch(async () => {
-      // If RPC doesn't work, try direct query
-      const { data: sample, error } = await supabase
-        .from('receipt_items')
-        .select('*')
-        .limit(1);
-      
-      if (error) {
-        console.error('❌ Error checking table:', error.message);
-        return { data: null, error };
-      }
-      
-      if (sample && sample.length > 0) {
-        console.log('✅ Table exists. Columns found in sample row:');
-        console.log('   ', Object.keys(sample[0]).join(', '));
-        return { data: sample[0], error: null };
-      }
-      
-      return { data: null, error: null };
-    });
+    // Get a sample row to see what columns exist
+    const { data: sampleRow, error: rowError } = await supabase
+      .from('receipt_items')
+      .select('*')
+      .limit(1);
+    
+    if (rowError) {
+      console.error('❌ Error checking table:', rowError.message);
+      process.exit(1);
+    }
+    
+    if (sampleRow && sampleRow.length > 0) {
+      console.log('✅ Table exists. Columns found in sample row:');
+      console.log('   ', Object.keys(sampleRow[0]).join(', '));
+      console.log('');
+    }
 
     // Step 2: Get a sample of actual data
     console.log('\n📊 Step 2: Checking actual data...\n');
