@@ -262,7 +262,13 @@ export async function getReceiptByToken(token, options = {}) {
       .order('created_at', { ascending: true });
 
     if (itemsError) {
-      safeLogWarn(logger, '⚠️ [RECEIPT-SHARE] Error fetching receipt items:', itemsError);
+      safeLogWarn(logger, '⚠️ [RECEIPT-SHARE] Error fetching receipt items:', {
+        error_message: itemsError?.message || 'Unknown error',
+        error_code: itemsError?.code || 'NO_CODE',
+        error_name: itemsError?.name || 'NO_NAME',
+        receipt_id: receipt.id,
+        full_error: itemsError ? JSON.stringify(itemsError) : 'NO_ERROR_OBJECT',
+      });
       receipt.receipt_items = []; // Set empty array on error
     } else {
       receipt.receipt_items = receiptItems || [];

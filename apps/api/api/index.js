@@ -432,15 +432,28 @@ fastify.post('/api/disputes', async (request, reply) => {
               first_item_keys: receiptItems[0] ? Object.keys(receiptItems[0]).join(', ') : 'none',
             });
           } else {
-            fastify.log.error('❌ [VERIFY-API] Error fetching items from DB:', {
+            // Log the error in multiple ways to ensure we see it
+            fastify.log.error('❌ [VERIFY-API] Error fetching items from DB');
+            fastify.log.error('❌ [VERIFY-API] Error object:', dbError);
+            fastify.log.error('❌ [VERIFY-API] Error details:', {
               error_message: dbError?.message || 'Unknown error',
               error_code: dbError?.code || 'NO_CODE',
               error_details: dbError?.details || 'NO_DETAILS',
               error_hint: dbError?.hint || 'NO_HINT',
+              error_name: dbError?.name || 'NO_NAME',
+              error_stack: dbError?.stack || 'NO_STACK',
               receipt_id: receipt.id,
               supabase_configured: supabase ? 'YES' : 'NO',
-              full_error: dbError ? JSON.stringify(dbError) : 'NO_ERROR_OBJECT',
+              supabase_url: process.env.SUPABASE_URL ? 'SET' : 'NOT_SET',
+              supabase_key: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'NOT_SET',
             });
+            if (dbError) {
+              try {
+                fastify.log.error('❌ [VERIFY-API] Full error JSON:', JSON.stringify(dbError, null, 2));
+              } catch (e) {
+                fastify.log.error('❌ [VERIFY-API] Could not stringify error:', e);
+              }
+            }
           }
         }
 
