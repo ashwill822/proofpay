@@ -451,113 +451,81 @@ export default function VerifyReceipt() {
         {receipt.receipt_items && receipt.receipt_items.length > 0 ? (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Items</h3>
-            <div className="space-y-3">
-              {receipt.receipt_items.map((item, idx) => {
-                // Use item_name directly from database (same as /receipts/[id])
-                // Match the receipts detail page exactly - use item.item_name directly
-                const itemName = item.item_name;
-                
-                // Debug log EVERY item to see what we're getting
-                console.log(`🔍 [VERIFY] Item ${idx}:`, {
-                  item: item,
-                  itemKeys: Object.keys(item),
-                  hasItemName: 'item_name' in item,
-                  itemNameValue: item.item_name,
-                  itemNameType: typeof item.item_name,
-                  allFields: JSON.stringify(item),
-                });
-                
-                // Debug log if item_name is missing
-                if (!itemName) {
-                  console.error('❌ [VERIFY] Item missing item_name:', {
-                    index: idx,
-                    item: item,
-                    itemKeys: Object.keys(item),
-                    itemString: JSON.stringify(item),
-                  });
-                }
-                
-                // Check if this item is disputed
-                const disputedItem = dispute?.disputed_items?.find(di => {
-                  if (!di.item_name || !itemName) return false;
-                  return di.item_name === itemName || di.item_name === itemName.trim();
-                });
-                const isDisputed = !!disputedItem;
-                const disputedQuantity = disputedItem?.quantity || 0;
-                const isPartialDispute = isDisputed && disputedQuantity < item.quantity;
-                
-                return (
-                  <div 
-                    key={idx} 
-                    className={`py-3 border-b border-gray-100 last:border-0 ${
-                      isDisputed ? 'bg-amber-50 border-amber-200 rounded-lg px-3 -mx-3' : ''
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Item Name</th>
+                    <th className="text-center py-3 px-4 font-semibold text-gray-900">Quantity</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-900">Price</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-900">Total Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {receipt.receipt_items.map((item, idx) => {
+                    const itemName = item.item_name || (item as any).name || 'Item Name Missing';
+                    const unitPrice = parseFloat(item.item_price || '0');
+                    const quantity = item.quantity || 1;
+                    const totalPrice = unitPrice * quantity;
+                    
+                    // Check if this item is disputed
+                    const disputedItem = dispute?.disputed_items?.find(di => {
+                      if (!di.item_name || !itemName) return false;
+                      return di.item_name === itemName || di.item_name === itemName.trim();
+                    });
+                    const isDisputed = !!disputedItem;
+                    
+                    return (
+                      <tr 
+                        key={idx} 
+                        className={`border-b border-gray-100 last:border-0 ${
+                          isDisputed ? 'bg-amber-50' : ''
+                        }`}
+                      >
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <p className={`font-medium ${isDisputed ? 'text-amber-900' : 'text-gray-900'}`}>
+                              {itemName}
+                            </p>
+                            {isDisputed && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-200 text-amber-800">
+                                Disputed
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-center">
                           <p className={`font-medium ${isDisputed ? 'text-amber-900' : 'text-gray-900'}`}>
-                            {item.item_name || (item as any).name || 'Item Name Missing'}
+                            {quantity}
                           </p>
-                          {isDisputed && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-200 text-amber-800">
-                              Disputed
-                            </span>
-                          )}
-                        </div>
-                        {item.description && (
-                          <p className="text-sm text-gray-600 mt-1">{item.description}</p>
-                        )}
-                        <div className="flex flex-wrap gap-3 mt-2 text-xs">
-                          <span className={isDisputed ? 'text-amber-800 font-medium' : 'text-gray-500'}>
-                            Quantity: {item.quantity}
-                            {isPartialDispute && (
-                              <span className="ml-1 text-amber-600">
-                                ({disputedQuantity} disputed)
-                              </span>
-                            )}
-                            {isDisputed && !isPartialDispute && (
-                              <span className="ml-1 text-amber-600">
-                                (all disputed)
-                              </span>
-                            )}
-                          </span>
-                          {item.variation && (
-                            <span className={isDisputed ? 'text-amber-700' : 'text-gray-500'}>
-                              • {item.variation}
-                            </span>
-                          )}
-                          {item.category && (
-                            <span className={isDisputed ? 'text-amber-700' : 'text-gray-500'}>
-                              • {item.category}
-                            </span>
-                          )}
-                          {item.sku && (
-                            <span className={isDisputed ? 'text-amber-700' : 'text-gray-500'}>
-                              • SKU: {item.sku}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right ml-4">
-                        <p className={`font-semibold ${isDisputed ? 'text-amber-900' : 'text-gray-900'}`}>
-                          {formatCurrency((parseFloat(item.item_price) * item.quantity).toString(), receipt.currency)}
-                        </p>
-                        {item.item_price && item.quantity > 1 && (
-                          <p className={`text-xs mt-1 ${isDisputed ? 'text-amber-700' : 'text-gray-500'}`}>
-                            {formatCurrency(item.item_price, receipt.currency)} each
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <p className={`font-medium ${isDisputed ? 'text-amber-900' : 'text-gray-900'}`}>
+                            {formatCurrency(unitPrice.toString(), receipt.currency)}
                           </p>
-                        )}
-                        {isDisputed && disputedItem?.amount_cents && (
-                          <p className="text-xs text-amber-600 font-medium mt-1">
-                            Disputed: {formatCurrency((disputedItem.amount_cents / 100).toString(), receipt.currency)}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <p className={`font-semibold ${isDisputed ? 'text-amber-900' : 'text-gray-900'}`}>
+                            {formatCurrency(totalPrice.toString(), receipt.currency)}
                           </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-gray-300">
+                    <td colSpan={3} className="py-4 px-4 text-right">
+                      <p className="text-lg font-semibold text-gray-900">Total</p>
+                    </td>
+                    <td className="py-4 px-4 text-right">
+                      <p className="text-2xl font-bold text-indigo-600">
+                        {formatCurrency(receipt.amount, receipt.currency)}
+                      </p>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
             <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between">
               <p className="text-lg font-semibold text-gray-900">Total</p>
