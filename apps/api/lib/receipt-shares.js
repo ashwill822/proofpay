@@ -239,11 +239,24 @@ export async function getReceiptByToken(token, options = {}) {
     }
 
     // Fetch receipt with items using nested query (same as /api/receipts/:id)
+    // Explicitly select item_name to ensure it's included
     const { data: receipt, error: receiptError } = await supabase
       .from('receipts')
       .select(`
         *,
-        receipt_items (*)
+        receipt_items (
+          id,
+          receipt_id,
+          item_name,
+          item_price,
+          quantity,
+          created_at,
+          updated_at,
+          description,
+          sku,
+          variation,
+          category
+        )
       `)
       .eq('id', share.receipt_id)
       .single();
@@ -441,11 +454,24 @@ export async function verifyShareToken(token, options = {}) {
     }
 
     // Fetch receipt with items using nested query (same as /api/receipts/:id)
+    // Explicitly select item_name to ensure it's included
     const { data: receipt, error: receiptError } = await supabase
       .from('receipts')
       .select(`
         *,
-        receipt_items (*)
+        receipt_items (
+          id,
+          receipt_id,
+          item_name,
+          item_price,
+          quantity,
+          created_at,
+          updated_at,
+          description,
+          sku,
+          variation,
+          category
+        )
       `)
       .eq('id', share.receipt_id)
       .single();
