@@ -1,5 +1,9 @@
 'use client';
 
+// Force dynamic rendering - no static generation or caching
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import ConfidenceBadge from '../../../components/ConfidenceBadge';
@@ -87,10 +91,14 @@ export default function VerifyReceipt() {
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
         try {
+          // Force no caching - always fetch fresh data from API
           const response = await fetch(`${apiUrl}/api/verify/${token}`, {
             signal: controller.signal,
+            cache: 'no-store', // Disable all caching
             headers: {
               'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
             },
           });
           

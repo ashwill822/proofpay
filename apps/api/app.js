@@ -804,6 +804,7 @@ const start = async () => {
         });
 
         // Return read-only receipt data (includes Payment ID and Receipt ID for verification)
+        // Structure matches /receipts/:id endpoint exactly
         const response = {
           success: true,
           verification_state: verification_state,
@@ -815,7 +816,7 @@ const start = async () => {
             currency: receipt.currency,
             created_at: receipt.created_at,
             purchase_time: receipt.purchase_time,
-            receipt_items: receiptItems,
+            receipt_items: receiptItems, // Same structure as /receipts/:id
             confidence_score: receipt.confidence_score,
             confidence_label: receipt.confidence_label,
             confidence_reasons: receipt.confidence_reasons,
@@ -833,9 +834,15 @@ const start = async () => {
 
         fastify.log.info('✅ Receipt retrieved by token', { 
           receiptId: receipt.id,
-          viewCount: share.view_count 
+          viewCount: share.view_count,
+          itemCount: receiptItems.length
         });
 
+        // Set cache-control headers to prevent caching
+        reply.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        reply.header('Pragma', 'no-cache');
+        reply.header('Expires', '0');
+        
         return reply.code(200).send(response);
       } catch (error) {
         fastify.log.error('❌ Error in GET /api/verify/:token:', error);
