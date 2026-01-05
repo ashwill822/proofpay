@@ -825,6 +825,16 @@ const start = async () => {
           // Error already logged, just catch to prevent unhandled rejection
         });
 
+        // Log final response structure before sending
+        fastify.log.info('🔍 [VERIFY] Final response structure', {
+          receipt_id: receipt.id,
+          receipt_items_count: receiptItems.length,
+          first_item_keys: receiptItems[0] ? Object.keys(receiptItems[0]).join(', ') : 'none',
+          first_item_has_item_name: receiptItems[0]?.item_name ? true : false,
+          first_item_name: receiptItems[0]?.item_name || 'MISSING',
+          first_item_full: JSON.stringify(receiptItems[0] || {}),
+        });
+
         // Return read-only receipt data (includes Payment ID and Receipt ID for verification)
         // Structure matches /receipts/:id endpoint exactly - receipt_items already included from nested query
         const response = {
