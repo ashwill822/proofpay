@@ -675,9 +675,9 @@ const start = async () => {
           }
         }
 
-        // TESTING: Use EXACT same query as /api/receipts/:id endpoint
-        // This ensures we get the same data structure that works on the receipts page
-        fastify.log.info('🔍 [VERIFY] Using same query as /receipts/:id endpoint', {
+        // SIMPLEST: Use EXACT same query as /api/receipts/:id - NO transformation, NO mapping
+        // Just copy the receipt_items directly from the query result
+        fastify.log.info('🔍 [VERIFY] Using EXACT same query as /receipts/:id (no transformation)', {
           receipt_id: receipt.id,
         });
         
@@ -691,27 +691,16 @@ const start = async () => {
           .eq('id', receipt.id)
           .single();
         
-        // Extract receipt_items from the nested query result (same as /api/receipts/:id)
+        // Extract receipt_items directly - NO mapping, NO transformation
+        // Use the exact same data structure that /api/receipts/:id returns
         let receiptItems = [];
         if (receiptError) {
-          fastify.log.error('❌ [VERIFY] Error fetching receipt with items (nested query):', receiptError);
-          // Fallback to direct query
-          const { data: dbItems, error: dbError } = await supabase
-            .from('receipt_items')
-            .select('*')
-            .eq('receipt_id', receipt.id)
-            .order('created_at', { ascending: true });
-          
-          if (dbError) {
-            fastify.log.error('❌ [VERIFY] Fallback query also failed:', dbError);
-            receiptItems = [];
-          } else {
-            receiptItems = dbItems || [];
-          }
+          fastify.log.error('❌ [VERIFY] Error fetching receipt with items:', receiptError);
+          receiptItems = [];
         } else {
-          // Use receipt_items from nested query (same as /api/receipts/:id)
+          // DIRECT COPY - no transformation, no mapping, just use what the query returns
           receiptItems = receiptWithItems?.receipt_items || [];
-          fastify.log.info('✅ [VERIFY] Fetched receipt_items using nested query (same as /receipts/:id)', {
+          fastify.log.info('✅ [VERIFY] Copied receipt_items directly from query (same as /receipts/:id)', {
             receipt_id: receipt.id,
             item_count: receiptItems.length,
             first_item_keys: receiptItems[0] ? Object.keys(receiptItems[0]).join(', ') : 'none',
@@ -719,72 +708,6 @@ const start = async () => {
             first_item_name: receiptItems[0]?.item_name || 'MISSING',
           });
         }
-        
-        // Verify items have required fields
-        const itemsWithoutName = receiptItems.filter(item => !item.item_name);
-        if (itemsWithoutName.length > 0) {
-          fastify.log.error('❌ [VERIFY] Items from nested query are missing item_name!', {
-            items_missing_name: itemsWithoutName.length,
-            total_items: receiptItems.length,
-            first_missing_item: JSON.stringify(itemsWithoutName[0]),
-            first_missing_item_keys: itemsWithoutName[0] ? Object.keys(itemsWithoutName[0]).join(', ') : 'none',
-          });
-        }
-        
-        // Log raw items from database BEFORE mapping
-        fastify.log.info('🔍 [VERIFY] Raw items from DB (before mapping)', {
-          item_count: receiptItems.length,
-          first_item_raw: receiptItems[0] ? JSON.stringify(receiptItems[0]) : 'none',
-          first_item_keys: receiptItems[0] ? Object.keys(receiptItems[0]).join(', ') : 'none',
-        });
-
-        // Explicitly map to ensure item_name is present and all fields are included
-        // CRITICAL: Only map if items have the required fields, otherwise log error
-        receiptItems = receiptItems.map((item, idx) => {
-          // Log each item before mapping
-          fastify.log.info(`🔍 [VERIFY] Mapping item ${idx}`, {
-            item_keys: Object.keys(item),
-            has_id: 'id' in item,
-            has_receipt_id: 'receipt_id' in item,
-            has_item_name: 'item_name' in item,
-            item_name_value: item.item_name,
-            item_raw: JSON.stringify(item),
-          });
-
-          // If item doesn't have required fields, log error and try to fetch it again
-          if (!item.id || !item.item_name) {
-            fastify.log.error(`❌ [VERIFY] Item ${idx} missing required fields`, {
-              item: item,
-              item_keys: Object.keys(item),
-              item_json: JSON.stringify(item),
-            });
-          }
-
-          const mappedItem = {
-            id: item.id || null,
-            receipt_id: item.receipt_id || receipt.id, // Fallback to receipt.id if missing
-            item_name: item.item_name || null, // CRITICAL: Explicitly include item_name
-            item_price: String(item.item_price || '0'),
-            quantity: item.quantity || 1,
-            created_at: item.created_at || null,
-            updated_at: item.updated_at || null,
-            description: item.description || null,
-            sku: item.sku || null,
-            variation: item.variation || null,
-            category: item.category || null,
-          };
-          
-          // Log if item_name is missing after mapping
-          if (!mappedItem.item_name) {
-            fastify.log.error(`❌ [VERIFY] Item ${idx} missing item_name after mapping`, {
-              item_id: item.id,
-              item_keys: Object.keys(item),
-              mapped_item: mappedItem,
-            });
-          }
-          
-          return mappedItem;
-        });
 
         // Fetch dispute details if receipt is disputed
         let disputeInfo = null;
