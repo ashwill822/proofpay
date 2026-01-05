@@ -650,6 +650,10 @@ const start = async () => {
 
         const { verification_state, receipt, share } = result;
 
+        // CRITICAL: Log immediately to verify code execution
+        fastify.log.info('🔍 [VERIFY] CODE EXECUTING - receipt_id: ' + receipt.id);
+        fastify.log.info('🔍 [VERIFY] receipt.receipt_items count: ' + (receipt.receipt_items?.length || 0));
+
         // getReceiptByToken already fetches receipt_items with item_name explicitly selected
         // Use those items directly, but ensure item_name is present in each item
         fastify.log.info('🔍 [VERIFY] Using receipt_items from getReceiptByToken', {
