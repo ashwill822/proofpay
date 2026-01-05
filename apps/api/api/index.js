@@ -392,7 +392,7 @@ fastify.post('/api/disputes', async (request, reply) => {
 
         const { verification_state, receipt, share } = result;
 
-        // DEBUG: Log receipt items structure to verify item_name is present
+        // Log receipt items structure to verify item_name is present
         console.log('🔍 [VERIFY-API] Receipt items from getReceiptByToken:', {
           receipt_id: receipt.id,
           items_count: receipt.receipt_items?.length || 0,
@@ -513,45 +513,21 @@ fastify.post('/api/disputes', async (request, reply) => {
             currency: receipt.currency,
             created_at: receipt.created_at,
             purchase_time: receipt.purchase_time,
-            receipt_items: receipt.receipt_items?.map((item, idx) => {
-              // Use item_name from database (database column name)
-              // Provide both 'name' and 'item_name' for frontend compatibility
-              const itemName = item.item_name || item.name || 'Unknown Item';
-              
-              // DEBUG: Log each item mapping
-              if (idx === 0) {
-                console.log('🔍 [VERIFY-API] Mapping first item:', {
-                  item_keys: Object.keys(item).join(', '),
-                  item_item_name: item.item_name || 'MISSING',
-                  item_name: item.name || 'MISSING',
-                  final_itemName: itemName,
-                });
-              }
-              
-              const mappedItem = {
-                id: item.id || null,
-                receipt_id: item.receipt_id || receipt.id,
-                name: itemName, // For frontend compatibility
-                item_name: itemName, // Database column name
-                item_price: String(item.item_price || '0'),
-                quantity: item.quantity || 1,
-                total_price: item.total_price || (item.item_price && item.quantity ? (parseFloat(item.item_price) * parseInt(item.quantity, 10)).toString() : '0'),
-                description: item.description || null,
-                sku: item.sku || null,
-                variation: item.variation || null,
-                category: item.category || null,
-              };
-              
-              if (idx === 0) {
-                console.log('🔍 [VERIFY-API] Mapped first item result:', {
-                  mapped_keys: Object.keys(mappedItem).join(', '),
-                  mapped_item_name: mappedItem.item_name,
-                  mapped_name: mappedItem.name,
-                });
-              }
-              
-              return mappedItem;
-            }) || [],
+            // Return items directly from getReceiptByToken - it already fetches item_name correctly
+            // Just ensure all required fields are present
+            receipt_items: (receipt.receipt_items || []).map(item => ({
+              id: item.id,
+              receipt_id: item.receipt_id || receipt.id,
+              item_name: item.item_name, // Direct from database
+              name: item.item_name, // Alias for frontend compatibility
+              item_price: String(item.item_price || '0'),
+              quantity: item.quantity || 1,
+              total_price: item.total_price || (item.item_price && item.quantity ? (parseFloat(item.item_price) * parseInt(item.quantity, 10)).toString() : '0'),
+              description: item.description || null,
+              sku: item.sku || null,
+              variation: item.variation || null,
+              category: item.category || null,
+            })),
             confidence_score: receipt.confidence_score,
             confidence_label: receipt.confidence_label,
             confidence_reasons: receipt.confidence_reasons,
