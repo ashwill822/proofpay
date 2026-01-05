@@ -650,11 +650,11 @@ const start = async () => {
 
         const { verification_state, receipt, share } = result;
 
-        // Fetch receipt items directly with explicit item_name selection
-        // This bypasses any issues with getReceiptByToken not returning item_name
+        // Fetch receipt items directly with select('*') to get all fields including item_name
+        // This ensures we get item_name even if it was stored as NULL initially
         const { data: receiptItemsData, error: itemsError } = await supabase
           .from('receipt_items')
-          .select('id, item_name, item_price, quantity, created_at, updated_at')
+          .select('*')
           .eq('receipt_id', receipt.id)
           .order('created_at', { ascending: true });
 
@@ -667,11 +667,17 @@ const start = async () => {
           itemCount: receiptItemsData?.length || 0,
           firstItem: receiptItemsData?.[0] || null,
           hasItemName: receiptItemsData?.[0]?.item_name ? true : false,
-          itemNameValue: receiptItemsData?.[0]?.item_name || 'MISSING'
+          itemNameValue: receiptItemsData?.[0]?.item_name || 'MISSING',
+          allKeys: receiptItemsData?.[0] ? Object.keys(receiptItemsData[0]) : []
         });
 
-        // Use directly fetched items (they should have item_name)
-        const receiptItems = receiptItemsData || [];
+        // Ensure item_name is present - use directly fetched items
+        // If item_name is missing, it means the database doesn't have it (NULL or empty)
+        const receiptItems = (receiptItemsData || []).map(item => ({
+          ...item,
+          // Ensure item_name is always present (even if null/empty in DB)
+          item_name: item.item_name || 'Unknown Item'
+        }));
 
         // Fetch dispute details if receipt is disputed
         let disputeInfo = null;
