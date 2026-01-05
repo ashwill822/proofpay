@@ -872,7 +872,8 @@ const start = async () => {
         fastify.log.info('✅ Receipt retrieved by token', { 
           receiptId: receipt.id,
           viewCount: share.view_count,
-          itemCount: receipt.receipt_items?.length || 0,
+          itemCount: finalReceiptItems.length,
+          first_item_has_name: finalReceiptItems[0]?.item_name ? true : false,
         });
 
         // Set cache-control headers to prevent caching
