@@ -306,7 +306,8 @@ export async function getReceiptByToken(token, options = {}) {
       verification_state: verificationState,
       receipt: {
         ...receipt,
-        // receipt_items already included from nested query (same structure as /api/receipts/:id)
+        // Explicitly include receipt_items from nested query (Supabase returns it as receipt_items array)
+        receipt_items: receipt.receipt_items || [],
       },
       share: {
         view_count: share.view_count + 1,
