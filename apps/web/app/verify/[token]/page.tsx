@@ -457,6 +457,26 @@ export default function VerifyReceipt() {
                 // Match the receipts detail page exactly - use item.item_name directly
                 const itemName = item.item_name;
                 
+                // Debug log EVERY item to see what we're getting
+                console.log(`🔍 [VERIFY] Item ${idx}:`, {
+                  item: item,
+                  itemKeys: Object.keys(item),
+                  hasItemName: 'item_name' in item,
+                  itemNameValue: item.item_name,
+                  itemNameType: typeof item.item_name,
+                  allFields: JSON.stringify(item),
+                });
+                
+                // Debug log if item_name is missing
+                if (!itemName) {
+                  console.error('❌ [VERIFY] Item missing item_name:', {
+                    index: idx,
+                    item: item,
+                    itemKeys: Object.keys(item),
+                    itemString: JSON.stringify(item),
+                  });
+                }
+                
                 // Check if this item is disputed
                 const disputedItem = dispute?.disputed_items?.find(di => {
                   if (!di.item_name || !itemName) return false;
