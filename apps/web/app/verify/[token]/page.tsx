@@ -438,9 +438,9 @@ export default function VerifyReceipt() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Items</h3>
             <div className="space-y-3">
               {receipt.receipt_items.map((item, idx) => {
-                // Use item_name directly from database (same as receipts page)
-                // Database column is 'item_name', so use that field
-                const itemName = (item as any).item_name || 'Unknown Item';
+                // Use name or item_name (API provides both for compatibility)
+                // Database column is 'item_name', but API also provides 'name' alias
+                const itemName = (item as any).name || (item as any).item_name || 'Unknown Item';
                 
                 // Check if this item is disputed
                 const disputedItem = dispute?.disputed_items?.find(di => {
