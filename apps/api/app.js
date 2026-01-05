@@ -662,8 +662,23 @@ const start = async () => {
           first_item_has_name: receipt.receipt_items?.[0]?.item_name ? true : false,
         });
 
+        // CRITICAL: Log what we're getting from getReceiptByToken
+        fastify.log.info('🔍 [VERIFY] Items from getReceiptByToken:', {
+          item_count: receipt.receipt_items?.length || 0,
+          first_item_keys: receipt.receipt_items?.[0] ? Object.keys(receipt.receipt_items[0]).join(', ') : 'none',
+          first_item_full: receipt.receipt_items?.[0] ? JSON.stringify(receipt.receipt_items[0]) : 'none',
+        });
+
         // Map items to explicitly ensure item_name is present (getReceiptByToken should have it, but be safe)
         let receiptItems = (receipt.receipt_items || []).map((item, idx) => {
+          // Log original item to see what we're working with
+          fastify.log.info(`🔍 [VERIFY] Mapping item ${idx}:`, {
+            original_keys: Object.keys(item),
+            original_item: JSON.stringify(item),
+            has_item_name: 'item_name' in item,
+            item_name_value: item.item_name,
+          });
+
           const mappedItem = {
             id: item.id || null,
             receipt_id: item.receipt_id || receipt.id,
@@ -683,6 +698,7 @@ const start = async () => {
               item_id: item.id,
               original_item_keys: Object.keys(item),
               original_item: JSON.stringify(item),
+              mapped_item: JSON.stringify(mappedItem),
             });
           }
           
