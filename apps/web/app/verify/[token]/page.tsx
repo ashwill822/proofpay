@@ -527,12 +527,6 @@ export default function VerifyReceipt() {
                 </tfoot>
               </table>
             </div>
-            <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between">
-              <p className="text-lg font-semibold text-gray-900">Total</p>
-              <p className="text-2xl font-bold text-indigo-600">
-                {formatCurrency(receipt.amount, receipt.currency)}
-              </p>
-            </div>
           </div>
         ) : (
           // Fallback when items are missing
