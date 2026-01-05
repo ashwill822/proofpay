@@ -406,10 +406,17 @@ fastify.post('/api/disputes', async (request, reply) => {
           first_item_full: receipt.receipt_items?.[0] ? JSON.stringify(receipt.receipt_items[0]) : 'none',
         });
 
-        // CRITICAL FIX: If items don't have item_name, fetch them directly from database
+        // CRITICAL FIX: Always fetch items directly from database to ensure item_name is present
+        // This is a fallback in case getReceiptByToken failed to fetch items or items are missing item_name
         let receiptItems = receipt.receipt_items || [];
-        if (receiptItems.length > 0 && !receiptItems[0]?.item_name) {
-          fastify.log.warn('⚠️ [VERIFY-API] Items missing item_name, fetching directly from DB');
+        const shouldFetchItems = receiptItems.length === 0 || (receiptItems.length > 0 && !receiptItems[0]?.item_name);
+        
+        if (shouldFetchItems) {
+          fastify.log.warn('⚠️ [VERIFY-API] Items missing or empty, fetching directly from DB', {
+            items_from_getReceiptByToken: receiptItems.length,
+            first_item_has_name: receiptItems[0]?.item_name ? true : false,
+          });
+          
           const { data: dbItems, error: dbError } = await supabase
             .from('receipt_items')
             .select('id, receipt_id, item_name, item_price, quantity, created_at, updated_at, description, sku, variation, category')
@@ -422,9 +429,13 @@ fastify.post('/api/disputes', async (request, reply) => {
               item_count: receiptItems.length,
               first_item_has_name: receiptItems[0]?.item_name ? true : false,
               first_item_name: receiptItems[0]?.item_name || 'MISSING',
+              first_item_keys: receiptItems[0] ? Object.keys(receiptItems[0]).join(', ') : 'none',
             });
           } else {
-            fastify.log.error('❌ [VERIFY-API] Error fetching items from DB:', dbError);
+            fastify.log.error('❌ [VERIFY-API] Error fetching items from DB:', {
+              error: dbError,
+              receipt_id: receipt.id,
+            });
           }
         }
 
