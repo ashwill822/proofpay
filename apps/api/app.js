@@ -676,22 +676,42 @@ const start = async () => {
         }
 
         // receipt_items already included from getReceiptByToken nested query
-        // Explicitly map to ensure item_name is present and properly formatted
-        const receiptItems = (receipt.receipt_items || []).map(item => {
-          // Log each item to debug
-          if (!item.item_name) {
-            fastify.log.warn('⚠️ [VERIFY] Item missing item_name in mapping', {
-              item_id: item.id,
-              item_keys: Object.keys(item),
-              item_data: item,
+        // If items are missing item_name, fetch them directly from database
+        let receiptItems = receipt.receipt_items || [];
+        
+        // Check if any items are missing item_name
+        const itemsMissingName = receiptItems.filter(item => !item.item_name || item.item_name.trim() === '');
+        if (itemsMissingName.length > 0) {
+          fastify.log.warn('⚠️ [VERIFY] Some items missing item_name, fetching directly from DB', {
+            receipt_id: receipt.id,
+            items_missing_name: itemsMissingName.length,
+            item_ids: itemsMissingName.map(item => item.id),
+          });
+          
+          // Fetch items directly from database to get item_name
+          const { data: dbItems, error: dbError } = await supabase
+            .from('receipt_items')
+            .select('id, item_name, item_price, quantity, created_at, updated_at, description, sku, variation, category')
+            .eq('receipt_id', receipt.id)
+            .order('created_at', { ascending: true });
+          
+          if (!dbError && dbItems) {
+            // Merge database items with receipt items (prioritize DB data)
+            receiptItems = receiptItems.map(item => {
+              const dbItem = dbItems.find(db => db.id === item.id);
+              return {
+                ...item,
+                item_name: dbItem?.item_name || item.item_name || null,
+              };
             });
           }
-          // Ensure item_name is explicitly included - use item.item_name directly from query
-          return {
-            ...item,
-            item_name: item.item_name || null, // Explicitly preserve item_name
-          };
-        });
+        }
+        
+        // Explicitly map to ensure item_name is present
+        receiptItems = receiptItems.map(item => ({
+          ...item,
+          item_name: item.item_name || null, // Explicitly preserve item_name
+        }));
 
         // Fetch dispute details if receipt is disputed
         let disputeInfo = null;
