@@ -720,55 +720,15 @@ const start = async () => {
           });
         }
         
-        if (dbError) {
-          fastify.log.error('❌ [VERIFY] Error fetching receipt_items from DB:', dbError);
-          fastify.log.error('❌ [VERIFY] DB Error details:', {
-            message: dbError.message,
-            code: dbError.code,
-            details: dbError.details,
-            hint: dbError.hint,
+        // Verify items have required fields
+        const itemsWithoutName = receiptItems.filter(item => !item.item_name);
+        if (itemsWithoutName.length > 0) {
+          fastify.log.error('❌ [VERIFY] Items from nested query are missing item_name!', {
+            items_missing_name: itemsWithoutName.length,
+            total_items: receiptItems.length,
+            first_missing_item: JSON.stringify(itemsWithoutName[0]),
+            first_missing_item_keys: itemsWithoutName[0] ? Object.keys(itemsWithoutName[0]).join(', ') : 'none',
           });
-          // Don't fallback - return empty array and log error
-          var receiptItems = [];
-          fastify.log.warn('⚠️ [VERIFY] Using empty receipt_items array due to DB error');
-        } else {
-          // Use items directly from database
-          var receiptItems = dbItems || [];
-          
-          // Log to verify item_name is present
-          fastify.log.info('✅ [VERIFY] Receipt items fetched from DB', {
-            receipt_id: receipt.id,
-            item_count: receiptItems.length,
-            first_item_keys: receiptItems[0] ? Object.keys(receiptItems[0]).join(', ') : 'none',
-            first_item_has_item_name: receiptItems[0]?.item_name ? true : false,
-            first_item_name: receiptItems[0]?.item_name || 'MISSING',
-            first_item_full: receiptItems[0] ? JSON.stringify(receiptItems[0]) : 'none',
-          });
-          
-          // CRITICAL: Verify items have required fields
-          const itemsWithoutName = receiptItems.filter(item => !item.item_name);
-          if (itemsWithoutName.length > 0) {
-            fastify.log.error('❌ [VERIFY] Items from DB are missing item_name!', {
-              items_missing_name: itemsWithoutName.length,
-              total_items: receiptItems.length,
-              first_missing_item: JSON.stringify(itemsWithoutName[0]),
-              first_missing_item_keys: itemsWithoutName[0] ? Object.keys(itemsWithoutName[0]).join(', ') : 'none',
-            });
-          }
-          
-          // If items are missing required fields, log full structure
-          if (receiptItems.length > 0 && (!receiptItems[0].id || !receiptItems[0].item_name)) {
-            fastify.log.error('❌ [VERIFY] Items missing required fields!', {
-              first_item: JSON.stringify(receiptItems[0]),
-              first_item_keys: Object.keys(receiptItems[0]),
-              all_items_sample: receiptItems.slice(0, 3).map(item => ({
-                keys: Object.keys(item),
-                has_id: 'id' in item,
-                has_receipt_id: 'receipt_id' in item,
-                has_item_name: 'item_name' in item,
-              })),
-            });
-          }
         }
         
         // Log raw items from database BEFORE mapping
