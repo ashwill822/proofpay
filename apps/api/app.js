@@ -706,27 +706,55 @@ const start = async () => {
           });
         }
         
+        // Log raw items from database BEFORE mapping
+        fastify.log.info('🔍 [VERIFY] Raw items from DB (before mapping)', {
+          item_count: receiptItems.length,
+          first_item_raw: receiptItems[0] ? JSON.stringify(receiptItems[0]) : 'none',
+          first_item_keys: receiptItems[0] ? Object.keys(receiptItems[0]).join(', ') : 'none',
+        });
+
         // Explicitly map to ensure item_name is present and all fields are included
-        receiptItems = receiptItems.map(item => {
+        // CRITICAL: Only map if items have the required fields, otherwise log error
+        receiptItems = receiptItems.map((item, idx) => {
+          // Log each item before mapping
+          fastify.log.info(`🔍 [VERIFY] Mapping item ${idx}`, {
+            item_keys: Object.keys(item),
+            has_id: 'id' in item,
+            has_receipt_id: 'receipt_id' in item,
+            has_item_name: 'item_name' in item,
+            item_name_value: item.item_name,
+            item_raw: JSON.stringify(item),
+          });
+
+          // If item doesn't have required fields, log error and try to fetch it again
+          if (!item.id || !item.item_name) {
+            fastify.log.error(`❌ [VERIFY] Item ${idx} missing required fields`, {
+              item: item,
+              item_keys: Object.keys(item),
+              item_json: JSON.stringify(item),
+            });
+          }
+
           const mappedItem = {
-            id: item.id,
-            receipt_id: item.receipt_id,
+            id: item.id || null,
+            receipt_id: item.receipt_id || receipt.id, // Fallback to receipt.id if missing
             item_name: item.item_name || null, // CRITICAL: Explicitly include item_name
             item_price: String(item.item_price || '0'),
             quantity: item.quantity || 1,
-            created_at: item.created_at,
-            updated_at: item.updated_at,
+            created_at: item.created_at || null,
+            updated_at: item.updated_at || null,
             description: item.description || null,
             sku: item.sku || null,
             variation: item.variation || null,
             category: item.category || null,
           };
           
-          // Log if item_name is missing
+          // Log if item_name is missing after mapping
           if (!mappedItem.item_name) {
-            fastify.log.warn('⚠️ [VERIFY] Item missing item_name after mapping', {
+            fastify.log.error(`❌ [VERIFY] Item ${idx} missing item_name after mapping`, {
               item_id: item.id,
               item_keys: Object.keys(item),
+              mapped_item: mappedItem,
             });
           }
           
