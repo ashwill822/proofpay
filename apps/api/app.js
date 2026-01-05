@@ -694,6 +694,8 @@ const start = async () => {
           receiptItems = [];
         } else {
           receiptItems = dbItems || [];
+          
+          // CRITICAL: Log EVERY item to see what we're getting
           fastify.log.info('✅ [VERIFY] Fetched receipt_items directly', {
             receipt_id: receipt.id,
             item_count: receiptItems.length,
@@ -701,6 +703,17 @@ const start = async () => {
             first_item_has_item_name: receiptItems[0]?.item_name ? true : false,
             first_item_name: receiptItems[0]?.item_name || 'MISSING',
             first_item_full: receiptItems[0] ? JSON.stringify(receiptItems[0]) : 'none',
+          });
+          
+          // Log ALL items to see which ones are missing item_name
+          receiptItems.forEach((item, idx) => {
+            if (!item.item_name) {
+              fastify.log.error(`❌ [VERIFY] Item ${idx} missing item_name from DB query:`, {
+                item_id: item.id,
+                item_keys: Object.keys(item),
+                item_json: JSON.stringify(item),
+              });
+            }
           });
         }
 
