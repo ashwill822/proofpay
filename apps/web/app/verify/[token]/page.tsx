@@ -477,7 +477,7 @@ export default function VerifyReceipt() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <p className={`font-medium ${isDisputed ? 'text-amber-900' : 'text-gray-900'}`}>
-                            {item.item_name}
+                            {item.item_name || (item as any).name || 'Item Name Missing'}
                           </p>
                           {isDisputed && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-200 text-amber-800">
