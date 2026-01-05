@@ -672,12 +672,19 @@ const start = async () => {
         });
 
         // Ensure item_name is present - use directly fetched items
-        // If item_name is missing, it means the database doesn't have it (NULL or empty)
-        const receiptItems = (receiptItemsData || []).map(item => ({
-          ...item,
-          // Ensure item_name is always present (even if null/empty in DB)
-          item_name: item.item_name || 'Unknown Item'
-        }));
+        // Map items to ensure item_name is ALWAYS present, even if NULL/empty in DB
+        const receiptItems = (receiptItemsData || []).map(item => {
+          // Extract all fields from item
+          const { item_name, ...rest } = item;
+          // Always include item_name, even if it's null/undefined/empty
+          return {
+            ...rest,
+            item_name: (item_name && String(item_name).trim()) || 'Unknown Item',
+            // Ensure all required fields are present
+            quantity: item.quantity || 1,
+            item_price: item.item_price || '0',
+          };
+        });
 
         // Fetch dispute details if receipt is disputed
         let disputeInfo = null;
