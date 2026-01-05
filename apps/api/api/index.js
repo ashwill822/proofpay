@@ -400,6 +400,28 @@ fastify.post('/api/disputes', async (request, reply) => {
           first_item_full: receipt.receipt_items?.[0] ? JSON.stringify(receipt.receipt_items[0]) : 'none',
         });
 
+        // CRITICAL FIX: If items don't have item_name, fetch them directly from database
+        let receiptItems = receipt.receipt_items || [];
+        if (receiptItems.length > 0 && !receiptItems[0]?.item_name) {
+          fastify.log.warn('⚠️ [VERIFY-API] Items missing item_name, fetching directly from DB');
+          const { data: dbItems, error: dbError } = await supabase
+            .from('receipt_items')
+            .select('id, receipt_id, item_name, item_price, quantity, created_at, updated_at, description, sku, variation, category')
+            .eq('receipt_id', receipt.id)
+            .order('created_at', { ascending: true });
+          
+          if (!dbError && dbItems) {
+            receiptItems = dbItems;
+            fastify.log.warn('✅ [VERIFY-API] Fetched items directly from DB:', {
+              item_count: receiptItems.length,
+              first_item_has_name: receiptItems[0]?.item_name ? true : false,
+              first_item_name: receiptItems[0]?.item_name || 'MISSING',
+            });
+          } else {
+            fastify.log.error('❌ [VERIFY-API] Error fetching items from DB:', dbError);
+          }
+        }
+
         // Fetch dispute details if receipt is disputed
         let disputeInfo = null;
         if (verification_state === 'DISPUTED') {
@@ -504,9 +526,9 @@ fastify.post('/api/disputes', async (request, reply) => {
             currency: receipt.currency,
             created_at: receipt.created_at,
             purchase_time: receipt.purchase_time,
-            // Return items directly from getReceiptByToken - it already fetches item_name correctly
+            // Use receiptItems (either from getReceiptByToken or fetched directly if missing item_name)
             // Just ensure all required fields are present
-            receipt_items: (receipt.receipt_items || []).map(item => ({
+            receipt_items: receiptItems.map(item => ({
               id: item.id,
               receipt_id: item.receipt_id || receipt.id,
               item_name: item.item_name, // Direct from database
