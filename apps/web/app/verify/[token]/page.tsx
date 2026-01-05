@@ -10,11 +10,13 @@ import ConfidenceBadge from '../../../components/ConfidenceBadge';
 import ConfidenceExplainability from '../../../components/ConfidenceExplainability';
 
 interface ReceiptItem {
-  name?: string;
-  item_name?: string; // Fallback if name is not present
-  quantity: number;
+  id: string;
+  receipt_id: string;
+  item_name: string; // Primary field from database
   item_price: string;
-  total_price?: string;
+  quantity: number;
+  created_at: string;
+  updated_at: string;
   description?: string | null;
   sku?: string | null;
   variation?: string | null;
@@ -274,7 +276,7 @@ export default function VerifyReceipt() {
                             <ul className="text-xs text-amber-700 space-y-1">
                               {dispute.disputed_items.map((item, idx) => (
                                 <li key={idx}>
-                                  • {item.quantity || 0}x {item.item_name || 'Unknown item'}
+                                  • {item.quantity || 0}x {item.item_name}
                                   {item.amount_cents && (
                                     <span className="ml-2">
                                       ({formatCurrency((item.amount_cents / 100).toString(), receipt.currency || 'USD')})
@@ -438,9 +440,8 @@ export default function VerifyReceipt() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Items</h3>
             <div className="space-y-3">
               {receipt.receipt_items.map((item, idx) => {
-                // Use item_name as primary (database column name)
-                // Keep name as fallback only for compatibility
-                const itemName = (item as any).item_name || (item as any).name || 'Unknown Item';
+                // Use item_name directly from database (same as /receipts/[id])
+                const itemName = item.item_name;
                 
                 // Check if this item is disputed
                 const disputedItem = dispute?.disputed_items?.find(di => {

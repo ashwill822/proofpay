@@ -654,63 +654,11 @@ const start = async () => {
         fastify.log.info('🔍 [VERIFY] Resolving token to receipt', {
           token: token.substring(0, 4) + '...',
           receipt_id: receipt.id,
+          item_count: receipt.receipt_items?.length || 0,
         });
 
-        // Fetch receipt items with explicit column selection to ensure item_name is included
-        // Explicitly select item_name and other required columns from receipt_items
-        const { data: receiptItemsData, error: itemsError } = await supabase
-          .from('receipt_items')
-          .select('id, receipt_id, item_name, item_price, quantity, created_at, updated_at, description, sku, variation, category')
-          .eq('receipt_id', receipt.id)
-          .order('created_at', { ascending: true });
-
-        if (itemsError) {
-          fastify.log.error('❌ [VERIFY] Error fetching receipt items:', {
-            receipt_id: receipt.id,
-            error: itemsError.message,
-            error_code: itemsError.code,
-          });
-        }
-
-        // Log diagnostic information (non-sensitive data)
-        const itemCount = receiptItemsData?.length || 0;
-        const hasRealItems = itemCount > 0;
-        const firstItemHasName = receiptItemsData?.[0]?.item_name ? true : false;
-        const firstItemHasNameKey = receiptItemsData?.[0] && 'item_name' in receiptItemsData[0];
-
-        fastify.log.info('🔍 [VERIFY] Receipt items fetched', {
-          receipt_id: receipt.id,
-          item_count: itemCount,
-          first_item_has_name: firstItemHasName,
-          first_item_has_name_key: firstItemHasNameKey,
-          first_item_keys: receiptItemsData?.[0] ? Object.keys(receiptItemsData[0]).join(', ') : 'none',
-        });
-
-        // Map items to include both item_name (from DB) and name (alias for frontend compatibility)
-        // Only use "Unknown Item" if item_name is truly null/empty in the DB
-        const receiptItems = (receiptItemsData || []).map(item => {
-          // Use item_name from database (database column name)
-          // Fallback to 'Unknown Item' only if item_name is truly NULL or empty in DB
-          const itemName = (item.item_name && item.item_name.trim() !== '') ? item.item_name : 'Unknown Item';
-          
-          return {
-            id: item.id,
-            receipt_id: item.receipt_id,
-            // Include item_name from DB (primary field)
-            item_name: itemName,
-            // Include name as alias equal to item_name for frontend compatibility
-            name: itemName,
-            item_price: String(item.item_price || '0'),
-            quantity: item.quantity || 1,
-            created_at: item.created_at,
-            updated_at: item.updated_at,
-            // Include optional fields if they exist
-            description: item.description || null,
-            sku: item.sku || null,
-            variation: item.variation || null,
-            category: item.category || null,
-          };
-        });
+        // receipt_items already included from getReceiptByToken nested query
+        // Same structure as /api/receipts/:id - no mapping or transformation needed
 
         // Fetch dispute details if receipt is disputed
         let disputeInfo = null;
@@ -750,8 +698,8 @@ const start = async () => {
                 created_at: dispute.created_at,
                 total_amount_cents: dispute.total_amount_cents,
                 disputed_items: disputeItems.map(di => ({
-                  item_name: di.receipt_items?.item_name || 'Unknown item',
-                  item_price: di.receipt_items?.item_price || '0',
+                  item_name: di.receipt_items?.item_name || null,
+                  item_price: di.receipt_items?.item_price || null,
                   quantity: di.quantity,
                   amount_cents: di.amount_cents
                 }))
@@ -805,7 +753,7 @@ const start = async () => {
         });
 
         // Return read-only receipt data (includes Payment ID and Receipt ID for verification)
-        // Structure matches /receipts/:id endpoint exactly
+        // Structure matches /receipts/:id endpoint exactly - receipt_items already included from nested query
         const response = {
           success: true,
           verification_state: verification_state,
@@ -817,7 +765,7 @@ const start = async () => {
             currency: receipt.currency,
             created_at: receipt.created_at,
             purchase_time: receipt.purchase_time,
-            receipt_items: receiptItems, // Same structure as /receipts/:id
+            receipt_items: receipt.receipt_items || [], // Direct from Supabase nested query (same as /receipts/:id)
             confidence_score: receipt.confidence_score,
             confidence_label: receipt.confidence_label,
             confidence_reasons: receipt.confidence_reasons,
@@ -836,7 +784,7 @@ const start = async () => {
         fastify.log.info('✅ Receipt retrieved by token', { 
           receiptId: receipt.id,
           viewCount: share.view_count,
-          itemCount: receiptItems.length
+          itemCount: receipt.receipt_items?.length || 0
         });
 
         // Set cache-control headers to prevent caching

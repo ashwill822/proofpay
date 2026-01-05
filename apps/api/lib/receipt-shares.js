@@ -238,10 +238,13 @@ export async function getReceiptByToken(token, options = {}) {
       };
     }
 
-    // Fetch receipt with items
+    // Fetch receipt with items using nested query (same as /api/receipts/:id)
     const { data: receipt, error: receiptError } = await supabase
       .from('receipts')
-      .select('*')
+      .select(`
+        *,
+        receipt_items (*)
+      `)
       .eq('id', share.receipt_id)
       .single();
 
@@ -292,28 +295,18 @@ export async function getReceiptByToken(token, options = {}) {
       .update(updateData)
       .eq('id', share.id);
 
-    // Fetch receipt items
-    const { data: items, error: itemsError } = await supabase
-      .from('receipt_items')
-      .select('*')
-      .eq('receipt_id', receipt.id)
-      .order('created_at', { ascending: true });
-
-    if (itemsError) {
-      safeLogWarn(logger, '⚠️ [RECEIPT-SHARE] Error fetching items:', itemsError);
-    }
-
     safeLogInfo(logger, '✅ [RECEIPT-SHARE] Receipt retrieved by token', { 
       token, 
       receiptId: receipt.id,
-      viewCount: share.view_count + 1 
+      viewCount: share.view_count + 1,
+      itemCount: receipt.receipt_items?.length || 0
     });
 
     return {
       verification_state: verificationState,
       receipt: {
         ...receipt,
-        receipt_items: items || [],
+        // receipt_items already included from nested query (same structure as /api/receipts/:id)
       },
       share: {
         view_count: share.view_count + 1,
@@ -436,10 +429,13 @@ export async function verifyShareToken(token, options = {}) {
       };
     }
 
-    // Fetch receipt
+    // Fetch receipt with items using nested query (same as /api/receipts/:id)
     const { data: receipt, error: receiptError } = await supabase
       .from('receipts')
-      .select('*')
+      .select(`
+        *,
+        receipt_items (*)
+      `)
       .eq('id', share.receipt_id)
       .single();
 
@@ -451,16 +447,7 @@ export async function verifyShareToken(token, options = {}) {
       };
     }
 
-    // Fetch receipt items
-    const { data: items, error: itemsError } = await supabase
-      .from('receipt_items')
-      .select('*')
-      .eq('receipt_id', receipt.id)
-      .order('created_at', { ascending: true });
-
-    if (itemsError) {
-      safeLogWarn(logger, '⚠️ [RECEIPT-SHARE] Error fetching items:', itemsError);
-    }
+    // receipt_items already included from nested query (same structure as /api/receipts/:id)
 
     // Check for active disputes
     const { data: disputes, error: disputesError } = await supabase
@@ -535,12 +522,7 @@ export async function verifyShareToken(token, options = {}) {
         currency: receipt.currency,
         created_at: receipt.created_at,
         purchase_time: receipt.purchase_time,
-        receipt_items: items?.map(item => ({
-          name: item.item_name || item.name || 'Unknown Item',
-          quantity: item.quantity || 1,
-          item_price: item.item_price || '0',
-          total_price: item.total_price || (item.item_price && item.quantity ? (parseFloat(item.item_price) * parseInt(item.quantity, 10)).toString() : item.item_price || '0'),
-        })) || [],
+        receipt_items: receipt.receipt_items || [], // Direct from Supabase nested query (same as /api/receipts/:id)
         confidence_score: receipt.confidence_score,
         confidence_label: receipt.confidence_label,
         confidence_reasons: receipt.confidence_reasons,
