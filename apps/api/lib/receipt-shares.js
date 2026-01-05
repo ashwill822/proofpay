@@ -472,7 +472,19 @@ export async function verifyShareToken(token, options = {}) {
       };
     }
 
-    // receipt_items already included from nested query (same structure as /api/receipts/:id)
+    // Fetch receipt_items separately to ensure item_name is always included
+    const { data: receiptItems, error: itemsError } = await supabase
+      .from('receipt_items')
+      .select('id, receipt_id, item_name, item_price, quantity, created_at, updated_at, description, sku, variation, category')
+      .eq('receipt_id', receipt.id)
+      .order('created_at', { ascending: true });
+
+    if (itemsError) {
+      safeLogWarn(logger, '⚠️ [RECEIPT-SHARE] Error fetching receipt items in verifyShareToken:', itemsError);
+      receipt.receipt_items = []; // Set empty array on error
+    } else {
+      receipt.receipt_items = receiptItems || [];
+    }
 
     // Check for active disputes
     const { data: disputes, error: disputesError } = await supabase
