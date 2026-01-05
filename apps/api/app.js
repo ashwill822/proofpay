@@ -695,21 +695,28 @@ const start = async () => {
 
         // Return items exactly as they come from database (same as /receipts/:id)
         // Do NOT transform or add placeholder items - only return what exists in DB
-        const receiptItems = receiptItemsData.map(item => ({
-          id: item.id,
-          receipt_id: item.receipt_id,
-          // Use item_name directly from database (database column name)
-          item_name: item.item_name || 'Unknown Item', // Fallback only if truly NULL in DB
-          item_price: String(item.item_price || '0'),
-          quantity: item.quantity || 1,
-          created_at: item.created_at,
-          updated_at: item.updated_at,
-          // Include optional fields if they exist
-          description: item.description || null,
-          sku: item.sku || null,
-          variation: item.variation || null,
-          category: item.category || null,
-        }));
+        const receiptItems = receiptItemsData.map(item => {
+          // Use item_name from database (database column name)
+          const itemName = item.item_name || 'Unknown Item'; // Fallback only if truly NULL in DB
+          
+          return {
+            id: item.id,
+            receipt_id: item.receipt_id,
+            // Provide both 'name' and 'item_name' for frontend compatibility
+            // Frontend can use either field
+            name: itemName,
+            item_name: itemName,
+            item_price: String(item.item_price || '0'),
+            quantity: item.quantity || 1,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            // Include optional fields if they exist
+            description: item.description || null,
+            sku: item.sku || null,
+            variation: item.variation || null,
+            category: item.category || null,
+          };
+        });
 
         // Fetch dispute details if receipt is disputed
         let disputeInfo = null;
