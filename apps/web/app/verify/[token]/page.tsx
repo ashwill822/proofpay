@@ -125,7 +125,12 @@ export default function VerifyReceipt() {
               count: receiptData.receipt.receipt_items.length,
               firstItem: receiptData.receipt.receipt_items[0],
               firstItemKeys: receiptData.receipt.receipt_items[0] ? Object.keys(receiptData.receipt.receipt_items[0]) : [],
+              firstItemHasItemName: receiptData.receipt.receipt_items[0]?.item_name ? true : false,
+              firstItemName: receiptData.receipt.receipt_items[0]?.item_name || 'MISSING',
+              allItemNames: receiptData.receipt.receipt_items.map((item: any) => item.item_name || 'MISSING'),
             });
+          } else {
+            console.warn('⚠️ [VERIFY] No receipt_items in response:', receiptData);
           }
           setData(receiptData);
         } catch (fetchError: any) {

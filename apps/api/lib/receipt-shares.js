@@ -302,11 +302,21 @@ export async function getReceiptByToken(token, options = {}) {
       itemCount: receipt.receipt_items?.length || 0
     });
 
+    // Log to verify receipt_items structure
+    safeLogInfo(logger, '🔍 [RECEIPT-SHARE] Receipt items structure', {
+      receipt_id: receipt.id,
+      receipt_items_count: receipt.receipt_items?.length || 0,
+      first_item_keys: receipt.receipt_items?.[0] ? Object.keys(receipt.receipt_items[0]).join(', ') : 'none',
+      first_item_has_item_name: receipt.receipt_items?.[0]?.item_name ? true : false,
+      first_item_name: receipt.receipt_items?.[0]?.item_name || 'MISSING',
+    });
+
     return {
       verification_state: verificationState,
       receipt: {
         ...receipt,
         // Explicitly include receipt_items from nested query (Supabase returns it as receipt_items array)
+        // Force include to ensure it's not lost in spread
         receipt_items: receipt.receipt_items || [],
       },
       share: {
