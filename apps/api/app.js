@@ -588,6 +588,7 @@ const start = async () => {
       try {
         // CRITICAL: Log immediately to confirm this code path is executing
         // This MUST appear if new code is running
+        // VERSION: 2026-01-05 - Force new deployment
         console.log('🔍 [VERIFY-ENDPOINT] VERIFY ENDPOINT CALLED - NEW CODE VERSION - CONSOLE.LOG');
         fastify.log.info('🔍 [VERIFY-ENDPOINT] VERIFY ENDPOINT CALLED - NEW CODE VERSION - FASTIFY.LOG');
         fastify.log.warn('🔍 [VERIFY-ENDPOINT] VERIFY ENDPOINT CALLED - NEW CODE VERSION - FASTIFY.LOG WARN');
