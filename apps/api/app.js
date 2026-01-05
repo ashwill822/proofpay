@@ -678,10 +678,18 @@ const start = async () => {
         // receipt_items already included from getReceiptByToken nested query
         // Explicitly map to ensure item_name is present and properly formatted
         const receiptItems = (receipt.receipt_items || []).map(item => {
-          // Ensure item_name is explicitly included
+          // Log each item to debug
+          if (!item.item_name) {
+            fastify.log.warn('⚠️ [VERIFY] Item missing item_name in mapping', {
+              item_id: item.id,
+              item_keys: Object.keys(item),
+              item_data: item,
+            });
+          }
+          // Ensure item_name is explicitly included - use item.item_name directly from query
           return {
             ...item,
-            item_name: item.item_name || null,
+            item_name: item.item_name || null, // Explicitly preserve item_name
           };
         });
 
