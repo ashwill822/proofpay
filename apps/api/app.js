@@ -676,7 +676,14 @@ const start = async () => {
         }
 
         // receipt_items already included from getReceiptByToken nested query
-        // Return exactly as-is (same as /api/receipts/:id) - no mapping needed
+        // Explicitly map to ensure item_name is present and properly formatted
+        const receiptItems = (receipt.receipt_items || []).map(item => {
+          // Ensure item_name is explicitly included
+          return {
+            ...item,
+            item_name: item.item_name || null,
+          };
+        });
 
         // Fetch dispute details if receipt is disputed
         let disputeInfo = null;
@@ -777,8 +784,8 @@ const start = async () => {
           verification_state: verification_state,
           receipt: {
             ...receipt,
-            // Explicitly include receipt_items to ensure it's not lost in spread
-            receipt_items: receipt.receipt_items || [],
+            // Use explicitly mapped receipt_items to ensure item_name is present
+            receipt_items: receiptItems,
           },
           share: {
             view_count: share.view_count,
