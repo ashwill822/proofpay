@@ -777,8 +777,8 @@ const start = async () => {
           verification_state: verification_state,
           receipt: {
             ...receipt,
-            // receipt_items already included from spread operator (same as /api/receipts/:id)
-            // All fields from receipt are included, including receipt_items from nested query
+            // Explicitly include receipt_items to ensure it's not lost in spread
+            receipt_items: receipt.receipt_items || [],
           },
           share: {
             view_count: share.view_count,
