@@ -606,8 +606,16 @@ const start = async () => {
 
         // Get receipt by token
         // Pass null for logger to use safe console logging (prevents Pino errors)
+        console.log('🔍 [VERIFY] About to call getReceiptByToken');
         const result = await getReceiptByToken(token, {
           logger: null // Use safe console logging instead of fastify.log
+        });
+        console.log('🔍 [VERIFY] getReceiptByToken returned:', {
+          has_receipt: !!result?.receipt,
+          receipt_id: result?.receipt?.id,
+          receipt_items_count: result?.receipt?.receipt_items?.length || 0,
+          first_item_keys: result?.receipt?.receipt_items?.[0] ? Object.keys(result.receipt.receipt_items[0]).join(', ') : 'none',
+          first_item_has_name: result?.receipt?.receipt_items?.[0]?.item_name ? true : false,
         });
 
         // Handle invalid states
